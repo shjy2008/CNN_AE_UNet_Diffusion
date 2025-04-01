@@ -1,3 +1,4 @@
+import torchvision
 from load_oxford_flowers102 import load_oxford_flowers102
 import torch
 import tqdm
@@ -17,17 +18,26 @@ class ConvBlock(torch.nn.Module):
     def __init__(self, in_channels, out_channels):
         super(ConvBlock, self).__init__()
         
-        self.conv_list = []
-        for i in range(3):
-            self.conv_list.append(torch.nn.Conv2d(in_channels = in_channels, out_channels = out_channels, kernel_size = 3, stride = 1, padding = 1))
+        # Add 3 convolutional layers
+        self.conv1 = torch.nn.Conv2d(in_channels=in_channels, out_channels=out_channels, kernel_size=3, stride=1, padding=1)
+        self.conv2 = torch.nn.Conv2d(in_channels=out_channels, out_channels=out_channels, kernel_size=3, stride=1, padding=1)
+        self.conv3 = torch.nn.Conv2d(in_channels=out_channels, out_channels=out_channels, kernel_size=3, stride=1, padding=1)
 
         self.pool = torch.nn.MaxPool2d(kernel_size = 2, stride = 2)
 
     def forward(self, x):
-        for conv in self.conv_list:
-            x = conv(x)
-            x = torch.relu(x)
-        
+        # Convolutional layer 1 followed by ReLU
+        x = self.conv1(x)
+        x = torch.relu(x)
+
+        # Convolutional layer 2 followed by ReLU
+        x = self.conv2(x)
+        x = torch.relu(x)
+
+        # Convolutional layer 3 followed by ReLU
+        x = self.conv3(x)
+        x = torch.relu(x)
+
         x = self.pool(x)
 
         return x
@@ -41,37 +51,38 @@ class CNN(torch.nn.Module):
         self.reg_dropout_rate = reg_dropout_rate
         self.reg_batch_norm = reg_batch_norm
 
-        self.conv_block1 = ConvBlock(in_channels, 64)
-        if self.reg_batch_norm:
-            self.bn1 = torch.nn.BatchNorm2d(64)
+        # 3 convolutional blocks
+        # self.conv_block1 = ConvBlock(in_channels, 64)
+        # if self.reg_batch_norm:
+        #     self.bn1 = torch.nn.BatchNorm2d(64)
 
-        self.conv_block2 = ConvBlock(64, 128)
-        if self.reg_batch_norm:
-            self.bn2 = torch.nn.BatchNorm2d(128)
+        # self.conv_block2 = ConvBlock(64, 128)
+        # if self.reg_batch_norm:
+        #     self.bn2 = torch.nn.BatchNorm2d(128)
         
-        self.conv_blcok3 = ConvBlock(128, 256)
-        if self.reg_batch_norm:
-            self.bn3 = torch.nn.BatchNorm2d(256)
+        # self.conv_block3 = ConvBlock(128, 256)
+        # if self.reg_batch_norm:
+        #     self.bn3 = torch.nn.BatchNorm2d(256)
         
-        # # in_channels: 3 (RGB)
-        # # input: 32 * 32 * 3 (width * height * in_channels)
-        # self.conv1 = torch.nn.Conv2d(in_channels = in_channels, out_channels = 64, kernel_size = 3, stride = 1, padding = 1)
-        # # output: 32 * 32 * 64 neurons
+        # in_channels: 3 (RGB)
+        # input: 32 * 32 * 3 (width * height * in_channels)
+        self.conv1 = torch.nn.Conv2d(in_channels = in_channels, out_channels = 64, kernel_size = 3, stride = 1, padding = 1)
+        # output: 32 * 32 * 64 neurons
         
-        # self.pool1 = torch.nn.MaxPool2d(kernel_size = 2, stride = 2)
-        # # output: 16 * 16 * 64 neurons
+        self.pool1 = torch.nn.MaxPool2d(kernel_size = 2, stride = 2)
+        # output: 16 * 16 * 64 neurons
 
-        # self.conv2 = torch.nn.Conv2d(in_channels = 64, out_channels = 128, kernel_size = 3, stride = 1, padding = 1)
-        # # output: 16 * 16 * 128 neurons
+        self.conv2 = torch.nn.Conv2d(in_channels = 64, out_channels = 128, kernel_size = 3, stride = 1, padding = 1)
+        # output: 16 * 16 * 128 neurons
         
-        # self.pool2 = torch.nn.MaxPool2d(kernel_size = 2, stride = 2)
-        # # output: 8 * 8 * 128 neurons
+        self.pool2 = torch.nn.MaxPool2d(kernel_size = 2, stride = 2)
+        # output: 8 * 8 * 128 neurons
 
-        # self.conv3 = torch.nn.Conv2d(in_channels = 128, out_channels = 256, kernel_size = 3, stride = 1, padding = 1)
-        # # output: 8 * 8 * 256 neurons
+        self.conv3 = torch.nn.Conv2d(in_channels = 128, out_channels = 256, kernel_size = 3, stride = 1, padding = 1)
+        # output: 8 * 8 * 256 neurons
         
-        # self.pool3 = torch.nn.MaxPool2d(kernel_size = 2, stride = 2)
-        # # output: 4 * 4 * 256 neurons
+        self.pool3 = torch.nn.MaxPool2d(kernel_size = 2, stride = 2)
+        # output: 4 * 4 * 256 neurons
 
         self.flatten = torch.nn.Flatten() # A multi-dimensional feature map -> a 1D vector
         # output: 4 * 4 * 256 = 4096 neurons
@@ -89,33 +100,34 @@ class CNN(torch.nn.Module):
         # output: n_classes neurons
 
     def forward(self, x):
-        x = self.conv_block1(x)
-        if self.reg_batch_norm:
-            x = self.bn1(x)
+        # x = self.conv_block1(x)
+        # if self.reg_batch_norm:
+        #     x = self.bn1(x)
         
-        x = self.conv_block2(x)
-        if self.reg_batch_norm:
-            x = self.bn2(x)
+        # x = self.conv_block2(x)
+        # if self.reg_batch_norm:
+        #     x = self.bn2(x)
         
-        x = self.conv_block3(x)
-        if self.reg_batch_norm:
-            x = self.bn3(x)
+        # x = self.conv_block3(x)
+        # if self.reg_batch_norm:
+        #     x = self.bn3(x)
         
 
-        # x = self.conv1(x)
-        # x = torch.relu(x)
+        x = self.conv1(x)
+        x = torch.relu(x)
         
-        # x = self.pool1(x)
+        x = self.pool1(x)
         
-        # x = self.conv2(x)
-        # x = torch.relu(x)
+        x = self.conv2(x)
+        x = torch.relu(x)
 
-        # x = self.pool2(x)
+        x = self.pool2(x)
 
-        # x = self.conv3(x)
-        # x = torch.relu(x)
+        x = self.conv3(x)
+        x = torch.relu(x)
 
-        # x = self.pool3(x)
+        x = self.pool3(x)
+        
 
         x = self.flatten(x)
 
@@ -134,9 +146,15 @@ class CNN(torch.nn.Module):
     
 class ModelTrainer(object):
 
-    def __init__(self):
+    def __init__(self, reg_dropout_rate = 0, reg_batch_norm = False, reg_wdecay_beta = 0):
         self.cnn = None
 
+        # Regularisation parameters
+        self.reg_dropout_rate = reg_dropout_rate
+        self.reg_batch_norm = reg_batch_norm
+        self.reg_wdecay_beta = reg_wdecay_beta
+
+        # Dataset
         self.training_set = None
         self.validation_set = None
         self.test_set = None
@@ -147,7 +165,6 @@ class ModelTrainer(object):
         self.test_data = None
 
         # Save file configs
-        self.load_from_file = True
         path_to_this_scripts_folder = os.path.dirname(os.path.realpath(__file__))
         path_to_save_folder = os.path.join(path_to_this_scripts_folder, "saved")
         if not os.path.isdir(path_to_save_folder):
@@ -165,19 +182,32 @@ class ModelTrainer(object):
         print(f"device: {self.device}")
 
     def load_dataset(self):
-        self.training_set, self.validation_set, self.test_set, self.class_names = load_oxford_flowers102(imsize = 32, fine = True)
-        self.training_data = torch.utils.data.DataLoader(self.training_set, batch_size = 16, shuffle = True)
-        self.validation_data = torch.utils.data.DataLoader(self.validation_set, batch_size = 16, shuffle = False)
-        self.test_data = torch.utils.data.DataLoader(self.test_set, batch_size = 16, shuffle = False)
+        # self.training_set, self.validation_set, self.test_set, self.class_names = load_oxford_flowers102(imsize = 32, fine = True)
+        # self.training_data = torch.utils.data.DataLoader(self.training_set, batch_size = 16, shuffle = True)
+        # self.validation_data = torch.utils.data.DataLoader(self.validation_set, batch_size = 16, shuffle = False)
+        # self.test_data = torch.utils.data.DataLoader(self.test_set, batch_size = 16, shuffle = False)
 
-        label_to_count = {}
-        for x_batch, y_batch in self.training_data:
-            for y in y_batch:
-                label = y.item()
-                if label in label_to_count:
-                    label_to_count[label] += 1
-                else:
-                    label_to_count[label] = 1
+        # TODO: for test CIFAR10
+        transform_train = torchvision.transforms.ToTensor()
+        path_to_data_folder = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'data_CIFAR10')
+        training_set = torchvision.datasets.CIFAR10(root=path_to_data_folder, train=True, download=True, transform=transform_train)
+        self.test_set = torchvision.datasets.CIFAR10(root=path_to_data_folder, train=False, download=True, transform=torchvision.transforms.ToTensor())
+        self.training_set, self.validation_set = torch.utils.data.random_split(training_set, [45000, 5000])
+
+        self.training_data = torch.utils.data.DataLoader(self.training_set, batch_size=100, shuffle=True)
+        self.validation_data = torch.utils.data.DataLoader(self.validation_set, batch_size=100, shuffle=False)
+        self.test_data = torch.utils.data.DataLoader(self.test_set, batch_size=100, shuffle=False)
+        self.class_names = ['airplane', 'automobile', 'bird', 'cat', 'deer',
+               'dog', 'frog', 'horse', 'ship', 'truck']
+
+        # label_to_count = {}
+        # for x_batch, y_batch in self.training_data:
+        #     for y in y_batch:
+        #         label = y.item()
+        #         if label in label_to_count:
+        #             label_to_count[label] += 1
+        #         else:
+        #             label_to_count[label] = 1
         
         # coarse: {8: 291, 2: 164, 3: 798, 7: 103, 4: 368, 1: 49, 9: 97, 5: 201, 6: 136, 0: 115}
         # fine-grained: {76: 231, 45: 176, 22: 71, 85: 38, 74: 100, 37: 36, 49: 72, 9: 25, 4: 45, 91: 46,
@@ -188,22 +218,42 @@ class ModelTrainer(object):
         #  75: 87, 21: 39, 86: 43, 26: 20, 47: 51, 66: 22, 90: 56, 58: 47, 16: 65, 15: 21, 62: 34, 98: 43, 19: 36,
         #  32: 26, 78: 21, 68: 34, 69: 42, 1: 40, 39: 47, 5: 25, 8: 26, 41: 39, 20: 20, 65: 41, 99: 29, 70: 58, 95: 71,
         #  48: 29, 30: 32, 56: 47, 25: 21, 23: 22, 12: 29, 24: 21, 33: 20, 3: 36, 44: 20, 34: 23, 0: 20, 38: 21, 101: 28, 6: 20}
-        print(f"label_to_count: {label_to_count}")
+        # print(f"label_to_count: {label_to_count}")
 
         # TODO: weighted loss
     
-    def train(self):
-        cnn = CNN(in_channels = 3, n_classes = len(self.class_names))
+    def train(self, load_from_file = False):
+        cnn = CNN(in_channels = 3, 
+                  n_classes = len(self.class_names), 
+                  reg_dropout_rate = self.reg_dropout_rate, 
+                  reg_batch_norm = self.reg_batch_norm)
         cnn.to(self.device)
 
         self.cnn = cnn
 
-        if self.load_from_file and os.path.isfile(self.saved_weights):
+        if load_from_file and os.path.isfile(self.saved_weights):
             # Load previous model
             print(f"Loading weights from {self.saved_weights}")
             cnn.load_state_dict(torch.load(self.saved_weights, weights_only = True))
         else:
-            optimizer = torch.optim.Adam(cnn.parameters(), lr = 0.001)
+
+            # Optimizer
+            lr = 1e-3
+            if self.reg_wdecay_beta:
+                weight_decay_params = []
+                no_weight_decay_params = []
+                for name, p in cnn.named_parameters():
+                    if "fc1.weight" in name or "fc2.weight" in name:
+                        weight_decay_params.append(p)
+                    else:
+                        no_weight_decay_params.append(p)
+
+                optimizer = torch.optim.Adam([{"params": weight_decay_params, "weight_decay": self.reg_wdecay_beta},
+                                              {"params": no_weight_decay_params}
+                                              ], lr = lr)
+            
+            else:
+                optimizer = torch.optim.Adam(cnn.parameters(), lr = lr)
 
             loss = torch.nn.CrossEntropyLoss()
 
@@ -283,18 +333,18 @@ class ModelTrainer(object):
             y_pred = torch.argmax(y_pred, dim=1)
             accuracy_test += torch.sum(y_pred == y_batch).item()
 
-            accuracy_test /= len(self.test_set)
-            print(f'Test accuracy : {accuracy_test:.2f}')
+        accuracy_test /= len(self.test_set)
+        print(f'Test accuracy : {accuracy_test:.2f}')
 
 
 if __name__ == "__main__":
-    trainer = ModelTrainer()
-    # trainer.load_dataset()
-    # trainer.train()
-    # trainer.test()
+    trainer = ModelTrainer(reg_dropout_rate = 0.4, reg_batch_norm = True, reg_wdecay_beta = 0.001)
+    trainer.load_dataset()
+    trainer.train(load_from_file = False)
+    trainer.test()
 
-    cnn = CNN(in_channels = 3, n_classes = 10, reg_dropout_rate = 0.4, reg_batch_norm = True)
-    print_number_of_trainable_model_parameters(cnn) # should not be more than 15 million (15,000,000)
+    # cnn = CNN(in_channels = 3, n_classes = 10, reg_dropout_rate = 0.4, reg_batch_norm = True)
+    # print_number_of_trainable_model_parameters(cnn) # should not be more than 15 million (15,000,000)
 
 
         
