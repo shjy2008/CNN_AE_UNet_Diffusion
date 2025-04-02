@@ -15,34 +15,34 @@ def print_number_of_trainable_model_parameters(model):
             trainable_model_params += param.numel()
     print(f"trainable model parameters: {trainable_model_params}\nall model parameters: {all_model_params}\npercentage of trainable model parameters: {100 * trainable_model_params / all_model_params:.2f}%")
 
-class ConvBlock(torch.nn.Module):
+# class ConvBlock(torch.nn.Module):
 
-    def __init__(self, in_channels, out_channels):
-        super(ConvBlock, self).__init__()
+#     def __init__(self, in_channels, out_channels):
+#         super(ConvBlock, self).__init__()
         
-        # Add 3 convolutional layers
-        self.conv1 = torch.nn.Conv2d(in_channels=in_channels, out_channels=out_channels, kernel_size=3, stride=1, padding=1)
-        self.conv2 = torch.nn.Conv2d(in_channels=out_channels, out_channels=out_channels, kernel_size=3, stride=1, padding=1)
-        self.conv3 = torch.nn.Conv2d(in_channels=out_channels, out_channels=out_channels, kernel_size=3, stride=1, padding=1)
+#         # Add 3 convolutional layers
+#         self.conv1 = torch.nn.Conv2d(in_channels=in_channels, out_channels=out_channels, kernel_size=3, stride=1, padding=1)
+#         self.conv2 = torch.nn.Conv2d(in_channels=out_channels, out_channels=out_channels, kernel_size=3, stride=1, padding=1)
+#         self.conv3 = torch.nn.Conv2d(in_channels=out_channels, out_channels=out_channels, kernel_size=3, stride=1, padding=1)
 
-        self.pool = torch.nn.MaxPool2d(kernel_size = 2, stride = 2)
+#         self.pool = torch.nn.MaxPool2d(kernel_size = 2, stride = 2)
 
-    def forward(self, x):
-        # Convolutional layer 1 followed by ReLU
-        x = self.conv1(x)
-        x = torch.relu(x)
+#     def forward(self, x):
+#         # Convolutional layer 1 followed by ReLU
+#         x = self.conv1(x)
+#         x = torch.relu(x)
 
-        # Convolutional layer 2 followed by ReLU
-        x = self.conv2(x)
-        x = torch.relu(x)
+#         # Convolutional layer 2 followed by ReLU
+#         x = self.conv2(x)
+#         x = torch.relu(x)
 
-        # Convolutional layer 3 followed by ReLU
-        x = self.conv3(x)
-        x = torch.relu(x)
+#         # Convolutional layer 3 followed by ReLU
+#         x = self.conv3(x)
+#         x = torch.relu(x)
 
-        x = self.pool(x)
+#         x = self.pool(x)
 
-        return x
+#         return x
 
 class CNN(torch.nn.Module):
 
@@ -65,31 +65,36 @@ class CNN(torch.nn.Module):
         # self.conv_block3 = ConvBlock(128, 256)
         # if self.reg_batch_norm:
         #     self.bn3 = torch.nn.BatchNorm2d(256)
+
+        out_channels_1 = 16
+        out_channels_2 = 16
+        out_channels_3 = 32
         
         # in_channels: 3 (RGB)
         # input: 32 * 32 * 3 (width * height * in_channels)
-        self.conv1 = torch.nn.Conv2d(in_channels = in_channels, out_channels = 64, kernel_size = 3, stride = 1, padding = 1)
-        # output: 32 * 32 * 64 neurons
+        self.conv1 = torch.nn.Conv2d(in_channels = in_channels, out_channels = out_channels_1, kernel_size = 3, stride = 1, padding = 1)
+        # output: 32 * 32 * out_channels_1 neurons
         
         self.pool1 = torch.nn.MaxPool2d(kernel_size = 2, stride = 2)
-        # output: 16 * 16 * 64 neurons
+        # output: 16 * 16 * out_channels_1 neurons
 
-        self.conv2 = torch.nn.Conv2d(in_channels = 64, out_channels = 128, kernel_size = 3, stride = 1, padding = 1)
-        # output: 16 * 16 * 128 neurons
+        self.conv2 = torch.nn.Conv2d(in_channels = out_channels_1, out_channels = out_channels_2, kernel_size = 3, stride = 1, padding = 1)
+        # output: 16 * 16 * out_channels_2 neurons
         
         self.pool2 = torch.nn.MaxPool2d(kernel_size = 2, stride = 2)
-        # output: 8 * 8 * 128 neurons
+        # output: 8 * 8 * out_channels_2 neurons
 
-        self.conv3 = torch.nn.Conv2d(in_channels = 128, out_channels = 256, kernel_size = 3, stride = 1, padding = 1)
-        # output: 8 * 8 * 256 neurons
+        self.conv3 = torch.nn.Conv2d(in_channels = out_channels_2, out_channels = out_channels_3, kernel_size = 3, stride = 1, padding = 1)
+        # output: 8 * 8 * out_channels_3 neurons
         
         self.pool3 = torch.nn.MaxPool2d(kernel_size = 2, stride = 2)
-        # output: 4 * 4 * 256 neurons
+        # output: 4 * 4 * out_channels_3 neurons
 
         self.flatten = torch.nn.Flatten() # A multi-dimensional feature map -> a 1D vector
-        # output: 4 * 4 * 256 = 4096 neurons
+        # output: 4 * 4 * out_channels_3 = 4096 neurons
 
-        self.fc1 = torch.nn.Linear(4096, 128)
+        neurons_after_conv_layers = 4608 # 4096 # 36864
+        self.fc1 = torch.nn.Linear(neurons_after_conv_layers, 128)
         # output: 128 neurons
 
         self.fc2 = torch.nn.Linear(128, 512)
@@ -203,7 +208,10 @@ class ModelTrainer(object):
         # Data augmentation
         transform_func = torchvision.transforms.Compose([
             torchvision.transforms.RandomHorizontalFlip(), # Horizontal flip
-            torchvision.transforms.Pad(padding = 10, padding_mode = "edge"), # Pad
+            # torchvision.transforms.Pad(padding = 10, padding_mode = "edge"), # Pad
+            torchvision.transforms.RandomRotation(degrees = 25),
+            torchvision.transforms.ColorJitter(brightness = 0.3, contrast = 0.3, saturation = 0.3, hue = 0.1),
+            
             torchvision.transforms.RandomAffine(degrees = 15, translate = (0.1, 0.1)), # Affine
             torchvision.transforms.CenterCrop(size = (imsize, imsize)),
             torchvision.transforms.ToTensor()
@@ -246,6 +254,11 @@ class ModelTrainer(object):
                 index += 1
                 if index >= len(imgs):
                     index = 0
+
+                # FOR TEST
+                # augmented_img_pil = torchvision.transforms.ToPILImage()(new_img)
+                # augmented_img_pil.save('augmented_image.jpg')
+                # pil_img.save('original_image.jpg')
         
         augmented_dataset = AugmentedDataset(img_and_labels = img_and_labels)
         self.training_set = torch.utils.data.ConcatDataset([self.training_set, augmented_dataset])
@@ -328,7 +341,7 @@ class ModelTrainer(object):
                 print(f"Epoch {epoch}/{epochs}")
                 batches_loop = tqdm.tqdm(enumerate(self.training_data), total = len(self.training_data), bar_format = '{n_fmt}/{total_fmt} [{bar}] - ETA: {remaining}{postfix}', ascii = ' >=')
 
-                for b, (x_batch, y_batch) in batches_loop:
+                for i, (x_batch, y_batch) in batches_loop:
                     x_batch = x_batch.to(self.device)
                     y_batch = y_batch.to(self.device)
 
@@ -347,8 +360,11 @@ class ModelTrainer(object):
                     total_correct_prediction_training += torch.sum(y_predict == y_batch).item()
                     total_sample_count += len(y_batch)
 
-                    batches_loop.set_postfix_str(f"loss: {total_loss_training/(b + 1):.4f} - accuracy: {total_correct_prediction_training/total_sample_count:.4f}")
+                    batches_loop.set_postfix_str(f"loss: {total_loss_training/(i + 1):.4f} - accuracy: {total_correct_prediction_training/total_sample_count:.4f}")
 
+                # Test every 10 epochs
+                if epoch % 10 == 0:
+                    self.test()
 
                 num_batches_training = len(self.training_data) # The number of mini-batches in training data
                 num_samples_training = len(self.training_set) # The total number of samples in training data
@@ -398,13 +414,27 @@ class ModelTrainer(object):
 
 if __name__ == "__main__":
     reg_dropout_rate = 0 # 0.3
-    reg_batch_norm = True
+    reg_batch_norm = False
     reg_wdecay_beta = 0 # 0.0001
-    fine_grained = False
-    imsize = 32
+    fine_grained = True
+    imsize = 96 # 32
     batch_size = 16
     epochs = 50
     learning_rate = 0.001
+
+    def print_hyper_params():
+        print("------------------------------------")
+        print(f"reg_dropout_rate:{reg_dropout_rate}")
+        print(f"reg_batch_norm:{reg_batch_norm}")
+        print(f"reg_wdecay_beta:{reg_wdecay_beta}")
+        print(f"fine_grained:{fine_grained}")
+        print(f"imsize:{imsize}")
+        print(f"batch_size:{batch_size}")
+        print(f"epochs:{epochs}")
+        print(f"learning_rate:{learning_rate}")
+        print("------------------------------------")
+    
+    print_hyper_params()
 
     trainer = ModelTrainer(reg_dropout_rate = reg_dropout_rate,
                            reg_batch_norm = reg_batch_norm,
@@ -421,16 +451,7 @@ if __name__ == "__main__":
     
     trainer.test()
 
-    print("------------------------------------")
-    print(f"reg_dropout_rate:{reg_dropout_rate}")
-    print(f"reg_batch_norm:{reg_batch_norm}")
-    print(f"reg_wdecay_beta:{reg_wdecay_beta}")
-    print(f"fine_grained:{fine_grained}")
-    print(f"imsize:{imsize}")
-    print(f"batch_size:{batch_size}")
-    print(f"epochs:{epochs}")
-    print(f"learning_rate:{learning_rate}")
-    print("------------------------------------")
+    print_hyper_params()
 
     # cnn = CNN(in_channels = 3, n_classes = 10, reg_dropout_rate = 0.4, reg_batch_norm = True)
     # print_number_of_trainable_model_parameters(cnn) # should not be more than 15 million (15,000,000)
