@@ -1,3 +1,5 @@
+import torch.utils
+import torch.utils.data
 import torchvision
 from load_oxford_flowers102 import load_oxford_flowers102
 import torch
@@ -51,7 +53,7 @@ class CNN(torch.nn.Module):
         self.reg_dropout_rate = reg_dropout_rate
         self.reg_batch_norm = reg_batch_norm
 
-        # 3 convolutional blocks
+        # # 3 convolutional blocks
         # self.conv_block1 = ConvBlock(in_channels, 64)
         # if self.reg_batch_norm:
         #     self.bn1 = torch.nn.BatchNorm2d(64)
@@ -144,6 +146,18 @@ class CNN(torch.nn.Module):
 
         return x
     
+
+class AugmentedDataset(torch.utils.data.Dataset):
+
+    def __init__(self, img_and_labels):
+        self.img_and_labels = img_and_labels
+    
+    def __getitem__(self, idx):
+        return self.img_and_labels[idx]
+
+    def __len__(self):
+        return len(self.img_and_labels)
+    
 class ModelTrainer(object):
 
     def __init__(self, reg_dropout_rate = 0, reg_batch_norm = False, reg_wdecay_beta = 0):
@@ -181,33 +195,33 @@ class ModelTrainer(object):
             self.device = torch.device("cpu")
         print(f"device: {self.device}")
 
-    def load_dataset(self):
-        # self.training_set, self.validation_set, self.test_set, self.class_names = load_oxford_flowers102(imsize = 32, fine = True)
-        # self.training_data = torch.utils.data.DataLoader(self.training_set, batch_size = 16, shuffle = True)
-        # self.validation_data = torch.utils.data.DataLoader(self.validation_set, batch_size = 16, shuffle = False)
-        # self.test_data = torch.utils.data.DataLoader(self.test_set, batch_size = 16, shuffle = False)
+    def load_dataset(self, fine_grained = False, imsize = 32, batch_size = 16):
+        self.training_set, self.validation_set, self.test_set, self.class_names = load_oxford_flowers102(imsize = imsize, fine = fine_grained)
 
-        # TODO: for test CIFAR10
-        transform_train = torchvision.transforms.ToTensor()
-        path_to_data_folder = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'data_CIFAR10')
-        training_set = torchvision.datasets.CIFAR10(root=path_to_data_folder, train=True, download=True, transform=transform_train)
-        self.test_set = torchvision.datasets.CIFAR10(root=path_to_data_folder, train=False, download=True, transform=torchvision.transforms.ToTensor())
-        self.training_set, self.validation_set = torch.utils.data.random_split(training_set, [45000, 5000])
+        # print(len(self.training_set), len(self.validation_set), len(self.test_set))
 
-        self.training_data = torch.utils.data.DataLoader(self.training_set, batch_size=100, shuffle=True)
-        self.validation_data = torch.utils.data.DataLoader(self.validation_set, batch_size=100, shuffle=False)
-        self.test_data = torch.utils.data.DataLoader(self.test_set, batch_size=100, shuffle=False)
-        self.class_names = ['airplane', 'automobile', 'bird', 'cat', 'deer',
-               'dog', 'frog', 'horse', 'ship', 'truck']
+        # Data augmentation
+        transform_func = torchvision.transforms.Compose([
+            torchvision.transforms.RandomHorizontalFlip(), # Horizontal flip
+            torchvision.transforms.Pad(padding = 10, padding_mode = "edge"), # Pad
+            torchvision.transforms.RandomAffine(degrees = 15, translate = (0.1, 0.1)), # Affine
+            torchvision.transforms.CenterCrop(size = (imsize, imsize)),
+            torchvision.transforms.ToTensor()
+        ])
 
-        # label_to_count = {}
-        # for x_batch, y_batch in self.training_data:
-        #     for y in y_batch:
-        #         label = y.item()
-        #         if label in label_to_count:
-        #             label_to_count[label] += 1
-        #         else:
-        #             label_to_count[label] = 1
+        label_to_count = {}
+        label_to_imgs = {}
+        for x, y in self.training_set:
+            label = y
+            if label in label_to_count:
+                label_to_count[label] += 1
+            else:
+                label_to_count[label] = 1
+
+            if label in label_to_imgs:
+                label_to_imgs[label].append(x)
+            else:
+                label_to_imgs[label] = [x]
         
         # coarse: {8: 291, 2: 164, 3: 798, 7: 103, 4: 368, 1: 49, 9: 97, 5: 201, 6: 136, 0: 115}
         # fine-grained: {76: 231, 45: 176, 22: 71, 85: 38, 74: 100, 37: 36, 49: 72, 9: 25, 4: 45, 91: 46,
@@ -218,16 +232,63 @@ class ModelTrainer(object):
         #  75: 87, 21: 39, 86: 43, 26: 20, 47: 51, 66: 22, 90: 56, 58: 47, 16: 65, 15: 21, 62: 34, 98: 43, 19: 36,
         #  32: 26, 78: 21, 68: 34, 69: 42, 1: 40, 39: 47, 5: 25, 8: 26, 41: 39, 20: 20, 65: 41, 99: 29, 70: 58, 95: 71,
         #  48: 29, 30: 32, 56: 47, 25: 21, 23: 22, 12: 29, 24: 21, 33: 20, 3: 36, 44: 20, 34: 23, 0: 20, 38: 21, 101: 28, 6: 20}
+
+        img_and_labels = []
+        max_label_count = max(label_to_count.values()) # The maximum number of images of one label (coarse: 798, fine: 231)
+        for label, imgs in label_to_imgs.items():
+            augment_img_count = max_label_count - len(imgs)
+            index = 0
+            for i in range(augment_img_count):
+                pil_img = torchvision.transforms.ToPILImage()(imgs[index])
+                new_img = transform_func(pil_img)
+                img_and_labels.append((new_img, label))
+
+                index += 1
+                if index >= len(imgs):
+                    index = 0
+        
+        augmented_dataset = AugmentedDataset(img_and_labels = img_and_labels)
+        self.training_set = torch.utils.data.ConcatDataset([self.training_set, augmented_dataset])
+
+        # Use DataLoader to load data into batches
+        self.training_data = torch.utils.data.DataLoader(self.training_set, batch_size = batch_size, shuffle = True)
+        self.validation_data = torch.utils.data.DataLoader(self.validation_set, batch_size = batch_size, shuffle = False)
+        self.test_data = torch.utils.data.DataLoader(self.test_set, batch_size = batch_size, shuffle = False)
+
+        # TODO: for test CIFAR10
+        # transform_train = torchvision.transforms.ToTensor()
+        # path_to_data_folder = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'data_CIFAR10')
+        # training_set = torchvision.datasets.CIFAR10(root=path_to_data_folder, train=True, download=True, transform=transform_train)
+        # self.test_set = torchvision.datasets.CIFAR10(root=path_to_data_folder, train=False, download=True, transform=torchvision.transforms.ToTensor())
+        # self.training_set, self.validation_set = torch.utils.data.random_split(training_set, [45000, 5000])
+
+        # self.training_data = torch.utils.data.DataLoader(self.training_set, batch_size=100, shuffle=True)
+        # self.validation_data = torch.utils.data.DataLoader(self.validation_set, batch_size=100, shuffle=False)
+        # self.test_data = torch.utils.data.DataLoader(self.test_set, batch_size=100, shuffle=False)
+        # self.class_names = ['airplane', 'automobile', 'bird', 'cat', 'deer',
+        #        'dog', 'frog', 'horse', 'ship', 'truck']
+
+        # label_to_count = {}
+        # for x_batch, y_batch in self.training_data:
+        #     for y in y_batch:
+        #         label = y.item()
+        #         if label in label_to_count:
+        #             label_to_count[label] += 1
+        #         else:
+        #             label_to_count[label] = 1
+        
         # print(f"label_to_count: {label_to_count}")
 
         # TODO: weighted loss
     
-    def train(self, load_from_file = False):
+    def train(self, load_from_file = False, epochs = 50, learning_rate = 0.001):
         cnn = CNN(in_channels = 3, 
-                  n_classes = len(self.class_names), 
-                  reg_dropout_rate = self.reg_dropout_rate, 
+                  n_classes = len(self.class_names),
+                  reg_dropout_rate = self.reg_dropout_rate,
                   reg_batch_norm = self.reg_batch_norm)
         cnn.to(self.device)
+
+        print_number_of_trainable_model_parameters(cnn) # should not be more than 15 million (15,000,000)
 
         self.cnn = cnn
 
@@ -238,7 +299,6 @@ class ModelTrainer(object):
         else:
 
             # Optimizer
-            lr = 1e-3
             if self.reg_wdecay_beta:
                 weight_decay_params = []
                 no_weight_decay_params = []
@@ -250,16 +310,15 @@ class ModelTrainer(object):
 
                 optimizer = torch.optim.Adam([{"params": weight_decay_params, "weight_decay": self.reg_wdecay_beta},
                                               {"params": no_weight_decay_params}
-                                              ], lr = lr)
+                                              ], lr = learning_rate)
             
             else:
-                optimizer = torch.optim.Adam(cnn.parameters(), lr = lr)
+                optimizer = torch.optim.Adam(cnn.parameters(), lr = learning_rate)
 
             loss = torch.nn.CrossEntropyLoss()
 
             history = {"loss": [], "accuracy": [], "validation_loss": [], "validation_accuracy": []}
 
-            epochs = 50
             for epoch in range(1, epochs + 1):
 
                 total_loss_training = 0
@@ -338,10 +397,40 @@ class ModelTrainer(object):
 
 
 if __name__ == "__main__":
-    trainer = ModelTrainer(reg_dropout_rate = 0.4, reg_batch_norm = True, reg_wdecay_beta = 0.001)
-    trainer.load_dataset()
-    trainer.train(load_from_file = False)
+    reg_dropout_rate = 0 # 0.3
+    reg_batch_norm = True
+    reg_wdecay_beta = 0 # 0.0001
+    fine_grained = False
+    imsize = 32
+    batch_size = 16
+    epochs = 50
+    learning_rate = 0.001
+
+    trainer = ModelTrainer(reg_dropout_rate = reg_dropout_rate,
+                           reg_batch_norm = reg_batch_norm,
+                           reg_wdecay_beta = reg_wdecay_beta
+                           )
+    
+    trainer.load_dataset(fine_grained = fine_grained,
+                         imsize = imsize,
+                         batch_size = batch_size)
+    
+    trainer.train(load_from_file = False,
+                  epochs = epochs,
+                  learning_rate = learning_rate)
+    
     trainer.test()
+
+    print("------------------------------------")
+    print(f"reg_dropout_rate:{reg_dropout_rate}")
+    print(f"reg_batch_norm:{reg_batch_norm}")
+    print(f"reg_wdecay_beta:{reg_wdecay_beta}")
+    print(f"fine_grained:{fine_grained}")
+    print(f"imsize:{imsize}")
+    print(f"batch_size:{batch_size}")
+    print(f"epochs:{epochs}")
+    print(f"learning_rate:{learning_rate}")
+    print("------------------------------------")
 
     # cnn = CNN(in_channels = 3, n_classes = 10, reg_dropout_rate = 0.4, reg_batch_norm = True)
     # print_number_of_trainable_model_parameters(cnn) # should not be more than 15 million (15,000,000)
