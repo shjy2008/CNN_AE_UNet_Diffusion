@@ -67,13 +67,14 @@ class CNN(torch.nn.Module):
         #     self.bn3 = torch.nn.BatchNorm2d(256)
 
         out_channels_1 = 16
-        out_channels_2 = 16
-        out_channels_3 = 32
+        out_channels_2 = 32
+        out_channels_3 = 64
         
         # in_channels: 3 (RGB)
         # input: 32 * 32 * 3 (width * height * in_channels)
         self.conv1 = torch.nn.Conv2d(in_channels = in_channels, out_channels = out_channels_1, kernel_size = 3, stride = 1, padding = 1)
         # output: 32 * 32 * out_channels_1 neurons
+        self.conv1_1 = torch.nn.Conv2d(in_channels = out_channels_1, out_channels = out_channels_1, kernel_size = 3, stride = 1, padding = 1)
 
         if self.reg_batch_norm:
             self.bn1 = torch.nn.BatchNorm2d(out_channels_1)
@@ -83,6 +84,7 @@ class CNN(torch.nn.Module):
 
         self.conv2 = torch.nn.Conv2d(in_channels = out_channels_1, out_channels = out_channels_2, kernel_size = 3, stride = 1, padding = 1)
         # output: 16 * 16 * out_channels_2 neurons
+        self.conv2_1 = torch.nn.Conv2d(in_channels = out_channels_2, out_channels = out_channels_2, kernel_size = 3, stride = 1, padding = 1)
         
         if self.reg_batch_norm:
             self.bn2 = torch.nn.BatchNorm2d(out_channels_2)
@@ -92,6 +94,7 @@ class CNN(torch.nn.Module):
 
         self.conv3 = torch.nn.Conv2d(in_channels = out_channels_2, out_channels = out_channels_3, kernel_size = 3, stride = 1, padding = 1)
         # output: 8 * 8 * out_channels_3 neurons
+        self.conv3_1 = torch.nn.Conv2d(in_channels = out_channels_3, out_channels = out_channels_3, kernel_size = 3, stride = 1, padding = 1)
         
         if self.reg_batch_norm:
             self.bn3 = torch.nn.BatchNorm2d(out_channels_3)
@@ -102,7 +105,7 @@ class CNN(torch.nn.Module):
         self.flatten = torch.nn.Flatten() # A multi-dimensional feature map -> a 1D vector
         # output: 4 * 4 * out_channels_3 = 4096 neurons
 
-        neurons_after_conv_layers = 4608 # 4096 # 36864
+        neurons_after_conv_layers = 4096 #8192 # 512 # 4608 # 4096 # 36864
         self.fc1 = torch.nn.Linear(neurons_after_conv_layers, 128)
         # output: 128 neurons
 
@@ -136,6 +139,8 @@ class CNN(torch.nn.Module):
         if self.reg_batch_norm:
             x = self.bn1(x)
         x = torch.relu(x)
+        # x = self.conv1_1(x)
+        # x = torch.relu(x)
         
         x = self.pool1(x)
         
@@ -143,6 +148,8 @@ class CNN(torch.nn.Module):
         if self.reg_batch_norm:
             x = self.bn2(x)
         x = torch.relu(x)
+        # x = self.conv2_1(x)
+        # x = torch.relu(x)
 
         x = self.pool2(x)
 
@@ -150,6 +157,8 @@ class CNN(torch.nn.Module):
         if self.reg_batch_norm:
             x = self.bn3(x)
         x = torch.relu(x)
+        # x = self.conv3_1(x)
+        # x = torch.relu(x)
 
         x = self.pool3(x)
         
@@ -434,11 +443,14 @@ class ModelTrainer(object):
 
 
 if __name__ == "__main__":
+    cnn = CNN(in_channels = 3, n_classes = 10, reg_dropout_rate = 0.4, reg_batch_norm = True)
+    print_number_of_trainable_model_parameters(cnn) # should not be more than 15 million (15,000,000)
+
     reg_dropout_rate = 0 # 0.3
     reg_batch_norm = False
     reg_wdecay_beta = 0 # 0.001
     fine_grained = False
-    imsize = 96 # 32
+    imsize = 64 # 96 # 32
     batch_size = 16
     epochs = 50
     learning_rate = 0.001
@@ -474,8 +486,6 @@ if __name__ == "__main__":
 
     print_hyper_params()
 
-    # cnn = CNN(in_channels = 3, n_classes = 10, reg_dropout_rate = 0.4, reg_batch_norm = True)
-    # print_number_of_trainable_model_parameters(cnn) # should not be more than 15 million (15,000,000)
 
 
         
