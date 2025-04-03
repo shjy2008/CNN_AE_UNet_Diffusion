@@ -85,7 +85,7 @@ class CNN(torch.nn.Module):
         self.flatten = torch.nn.Flatten() # A multi-dimensional feature map -> a 1D vector
         # output: 4 * 4 * out_channels_3 = 4096 neurons
 
-        neurons_after_conv_layers = 8192 # 18432 #8192 # 512 # 4608 # 4096 # 36864
+        neurons_after_conv_layers = 18432 #8192 # 512 # 4608 # 4096 # 36864
         self.fc1 = torch.nn.Linear(neurons_after_conv_layers, 128)
         # output: 128 neurons
 
@@ -150,8 +150,8 @@ class CNN(torch.nn.Module):
         x = self.flatten(x)
 
         x = self.fc1(x)
-        if self.reg_batch_norm:
-            x = self.bn_fc1(x)
+        # if self.reg_batch_norm:
+        #     x = self.bn_fc1(x)
         x = torch.relu(x)
 
         x = self.fc2(x)
@@ -431,11 +431,11 @@ if __name__ == "__main__":
     cnn = CNN(in_channels = 3, n_classes = 10, reg_dropout_rate = 0.4, reg_batch_norm = True)
     print_number_of_trainable_model_parameters(cnn) # should not be more than 15 million (15,000,000)
 
-    reg_dropout_rate = 0 # 0.3
+    reg_dropout_rate = 0.3
     reg_batch_norm = False
-    reg_wdecay_beta = 0 # 0.001
+    reg_wdecay_beta = 0.001
     fine_grained = False
-    imsize = 64 # 96 # 32
+    imsize = 96 # 32
     batch_size = 16
     data_augmentation = True
     epochs = 50
