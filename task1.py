@@ -69,6 +69,8 @@ class CNN(torch.nn.Module):
         out_channels_1 = 16
         out_channels_2 = 32
         out_channels_3 = 64
+        out_channels_4 = 128
+        out_channels_5 = 256
         
         # in_channels: 3 (RGB)
         # input: 32 * 32 * 3 (width * height * in_channels)
@@ -102,23 +104,43 @@ class CNN(torch.nn.Module):
         self.pool3 = torch.nn.MaxPool2d(kernel_size = 2, stride = 2)
         # output: 4 * 4 * out_channels_3 neurons
 
+        self.conv4 = torch.nn.Conv2d(in_channels = out_channels_3, out_channels = out_channels_4, kernel_size = 3, stride = 1, padding = 1)
+        # output: 8 * 8 * out_channels_4 neurons
+        self.conv4_1 = torch.nn.Conv2d(in_channels = out_channels_4, out_channels = out_channels_4, kernel_size = 3, stride = 1, padding = 1)
+        
+        if self.reg_batch_norm:
+            self.bn4 = torch.nn.BatchNorm2d(out_channels_4)
+
+        self.pool4 = torch.nn.MaxPool2d(kernel_size = 2, stride = 2)
+        # output: 4 * 4 * out_channels_3 neurons
+
+        # self.conv5 = torch.nn.Conv2d(in_channels = out_channels_4, out_channels = out_channels_5, kernel_size = 3, stride = 1, padding = 1)
+        # # output: 8 * 8 * out_channels_5 neurons
+        # self.conv5_1 = torch.nn.Conv2d(in_channels = out_channels_5, out_channels = out_channels_5, kernel_size = 3, stride = 1, padding = 1)
+        
+        # if self.reg_batch_norm:
+        #     self.bn5 = torch.nn.BatchNorm2d(out_channels_5)
+
+        self.pool5 = torch.nn.MaxPool2d(kernel_size = 2, stride = 2)
+        # output: 4 * 4 * out_channels_3 neurons
+
         self.flatten = torch.nn.Flatten() # A multi-dimensional feature map -> a 1D vector
         # output: 4 * 4 * out_channels_3 = 4096 neurons
 
-        neurons_after_conv_layers = 4096 #8192 # 512 # 4608 # 4096 # 36864
+        neurons_after_conv_layers = 4608 #8192 # 512 # 4608 # 4096 # 36864
         self.fc1 = torch.nn.Linear(neurons_after_conv_layers, 128)
         # output: 128 neurons
 
         if self.reg_batch_norm:
-            self.bn_fc1 = torch.nn.BatchNorm1d(128)
+            self.bn_fc1 = torch.nn.BatchNorm1d(512)
 
-        # self.fc2 = torch.nn.Linear(128, 512)
+        self.fc2 = torch.nn.Linear(128, 512)
         # output: 512 neurons
 
         if self.reg_dropout_rate > 0:
             self.dropout1 = torch.nn.Dropout(self.reg_dropout_rate)
 
-        self.fc3 = torch.nn.Linear(128, n_classes)
+        self.fc3 = torch.nn.Linear(512, n_classes)
         # output: n_classes neurons
 
     def forward(self, x):
@@ -162,6 +184,23 @@ class CNN(torch.nn.Module):
 
         x = self.pool3(x)
         
+        x = self.conv4(x)
+        if self.reg_batch_norm:
+            x = self.bn4(x)
+        x = torch.relu(x)
+        # x = self.conv4_1(x)
+        # x = torch.relu(x)
+
+        x = self.pool4(x)
+        
+        # x = self.conv5(x)
+        # if self.reg_batch_norm:
+        #     x = self.bn5(x)
+        # x = torch.relu(x)
+        # # x = self.conv5_1(x)
+        # # x = torch.relu(x)
+
+        # x = self.pool5(x)
 
         x = self.flatten(x)
 
@@ -170,8 +209,8 @@ class CNN(torch.nn.Module):
             x = self.bn_fc1(x)
         x = torch.relu(x)
 
-        # x = self.fc2(x)
-        # x = torch.relu(x)
+        x = self.fc2(x)
+        x = torch.relu(x)
 
         if self.reg_dropout_rate > 0:
             x = self.dropout1(x)
@@ -229,7 +268,7 @@ class ModelTrainer(object):
             self.device = torch.device("cpu")
         print(f"device: {self.device}")
 
-    def load_dataset(self, fine_grained = False, imsize = 32, batch_size = 16):
+    def load_dataset(self, fine_grained = False, imsize = 96, batch_size = 16):
         self.training_set, self.validation_set, self.test_set, self.class_names = load_oxford_flowers102(imsize = imsize, fine = fine_grained)
 
         # print(len(self.training_set), len(self.validation_set), len(self.test_set))
@@ -377,12 +416,12 @@ class ModelTrainer(object):
 
                     y_predict = cnn(x_batch)
 
+                    # Calculate loss
                     loss_value = loss(y_predict, y_batch)
                     
+                    # Update gradients and backpropagation update weights
                     optimizer.zero_grad()
-
                     loss_value.backward()
-
                     optimizer.step()
 
                     total_loss_training += loss_value.item()
@@ -450,10 +489,10 @@ if __name__ == "__main__":
     reg_batch_norm = False
     reg_wdecay_beta = 0 # 0.001
     fine_grained = False
-    imsize = 64 # 96 # 32
+    imsize = 96 # 96 # 32
     batch_size = 16
     epochs = 50
-    learning_rate = 0.001
+    learning_rate = 0.0001 # 0.00005
 
     def print_hyper_params():
         print("------------------------------------")
