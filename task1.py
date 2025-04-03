@@ -27,7 +27,7 @@ class CNN(torch.nn.Module):
         out_channels_1 = 64
         out_channels_2 = 128
         out_channels_3 = 256
-        out_channels_4 = 128
+        out_channels_4 = 512
         out_channels_5 = 256
         
         # in_channels: 3 (RGB)
@@ -62,15 +62,15 @@ class CNN(torch.nn.Module):
         self.pool3 = torch.nn.MaxPool2d(kernel_size = 2, stride = 2)
         # output: 4 * 4 * out_channels_3 neurons
 
-        # self.conv4 = torch.nn.Conv2d(in_channels = out_channels_3, out_channels = out_channels_4, kernel_size = 3, stride = 1, padding = 1)
-        # # output: 8 * 8 * out_channels_4 neurons
-        # self.conv4_1 = torch.nn.Conv2d(in_channels = out_channels_4, out_channels = out_channels_4, kernel_size = 3, stride = 1, padding = 1)
+        self.conv4 = torch.nn.Conv2d(in_channels = out_channels_3, out_channels = out_channels_4, kernel_size = 3, stride = 1, padding = 1)
+        # output: 8 * 8 * out_channels_4 neurons
+        self.conv4_1 = torch.nn.Conv2d(in_channels = out_channels_4, out_channels = out_channels_4, kernel_size = 3, stride = 1, padding = 1)
         
-        # if self.reg_batch_norm:
-        #     self.bn4 = torch.nn.BatchNorm2d(out_channels_4)
+        if self.reg_batch_norm:
+            self.bn4 = torch.nn.BatchNorm2d(out_channels_4)
 
-        # self.pool4 = torch.nn.MaxPool2d(kernel_size = 2, stride = 2)
-        # # output: 4 * 4 * out_channels_3 neurons
+        self.pool4 = torch.nn.MaxPool2d(kernel_size = 2, stride = 2)
+        # output: 4 * 4 * out_channels_3 neurons
 
         # self.conv5 = torch.nn.Conv2d(in_channels = out_channels_4, out_channels = out_channels_5, kernel_size = 3, stride = 1, padding = 1)
         # # output: 8 * 8 * out_channels_5 neurons
@@ -85,7 +85,7 @@ class CNN(torch.nn.Module):
         self.flatten = torch.nn.Flatten() # A multi-dimensional feature map -> a 1D vector
         # output: 4 * 4 * out_channels_3 = 4096 neurons
 
-        neurons_after_conv_layers = 4096 #8192 # 512 # 4608 # 4096 # 36864
+        neurons_after_conv_layers = 8192 # 18432 #8192 # 512 # 4608 # 4096 # 36864
         self.fc1 = torch.nn.Linear(neurons_after_conv_layers, 128)
         # output: 128 neurons
 
@@ -129,14 +129,14 @@ class CNN(torch.nn.Module):
 
         x = self.pool3(x)
         
-        # x = self.conv4(x)
-        # if self.reg_batch_norm:
-        #     x = self.bn4(x)
+        x = self.conv4(x)
+        if self.reg_batch_norm:
+            x = self.bn4(x)
+        x = torch.relu(x)
+        # x = self.conv4_1(x)
         # x = torch.relu(x)
-        # # x = self.conv4_1(x)
-        # # x = torch.relu(x)
 
-        # x = self.pool4(x)
+        x = self.pool4(x)
         
         # x = self.conv5(x)
         # if self.reg_batch_norm:
@@ -435,11 +435,11 @@ if __name__ == "__main__":
     reg_batch_norm = False
     reg_wdecay_beta = 0 # 0.001
     fine_grained = False
-    imsize = 32 # 96 # 32
+    imsize = 64 # 96 # 32
     batch_size = 16
-    data_augmentation = False
+    data_augmentation = True
     epochs = 50
-    learning_rate = 0.001 # 0.00005
+    learning_rate = 0.0001 # 0.00005
 
     def print_hyper_params():
         print("------------------------------------")
