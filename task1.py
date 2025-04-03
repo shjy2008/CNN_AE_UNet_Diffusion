@@ -15,35 +15,6 @@ def print_number_of_trainable_model_parameters(model):
             trainable_model_params += param.numel()
     print(f"trainable model parameters: {trainable_model_params}\nall model parameters: {all_model_params}\npercentage of trainable model parameters: {100 * trainable_model_params / all_model_params:.2f}%")
 
-# class ConvBlock(torch.nn.Module):
-
-#     def __init__(self, in_channels, out_channels):
-#         super(ConvBlock, self).__init__()
-        
-#         # Add 3 convolutional layers
-#         self.conv1 = torch.nn.Conv2d(in_channels=in_channels, out_channels=out_channels, kernel_size=3, stride=1, padding=1)
-#         self.conv2 = torch.nn.Conv2d(in_channels=out_channels, out_channels=out_channels, kernel_size=3, stride=1, padding=1)
-#         self.conv3 = torch.nn.Conv2d(in_channels=out_channels, out_channels=out_channels, kernel_size=3, stride=1, padding=1)
-
-#         self.pool = torch.nn.MaxPool2d(kernel_size = 2, stride = 2)
-
-#     def forward(self, x):
-#         # Convolutional layer 1 followed by ReLU
-#         x = self.conv1(x)
-#         x = torch.relu(x)
-
-#         # Convolutional layer 2 followed by ReLU
-#         x = self.conv2(x)
-#         x = torch.relu(x)
-
-#         # Convolutional layer 3 followed by ReLU
-#         x = self.conv3(x)
-#         x = torch.relu(x)
-
-#         x = self.pool(x)
-
-#         return x
-
 class CNN(torch.nn.Module):
 
     def __init__(self, in_channels, n_classes, reg_dropout_rate = 0, reg_batch_norm = False):
@@ -53,22 +24,9 @@ class CNN(torch.nn.Module):
         self.reg_dropout_rate = reg_dropout_rate
         self.reg_batch_norm = reg_batch_norm
 
-        # # 3 convolutional blocks
-        # self.conv_block1 = ConvBlock(in_channels, 64)
-        # if self.reg_batch_norm:
-        #     self.bn1 = torch.nn.BatchNorm2d(64)
-
-        # self.conv_block2 = ConvBlock(64, 128)
-        # if self.reg_batch_norm:
-        #     self.bn2 = torch.nn.BatchNorm2d(128)
-        
-        # self.conv_block3 = ConvBlock(128, 256)
-        # if self.reg_batch_norm:
-        #     self.bn3 = torch.nn.BatchNorm2d(256)
-
-        out_channels_1 = 16
-        out_channels_2 = 32
-        out_channels_3 = 64
+        out_channels_1 = 64
+        out_channels_2 = 128
+        out_channels_3 = 256
         out_channels_4 = 128
         out_channels_5 = 256
         
@@ -104,15 +62,15 @@ class CNN(torch.nn.Module):
         self.pool3 = torch.nn.MaxPool2d(kernel_size = 2, stride = 2)
         # output: 4 * 4 * out_channels_3 neurons
 
-        self.conv4 = torch.nn.Conv2d(in_channels = out_channels_3, out_channels = out_channels_4, kernel_size = 3, stride = 1, padding = 1)
-        # output: 8 * 8 * out_channels_4 neurons
-        self.conv4_1 = torch.nn.Conv2d(in_channels = out_channels_4, out_channels = out_channels_4, kernel_size = 3, stride = 1, padding = 1)
+        # self.conv4 = torch.nn.Conv2d(in_channels = out_channels_3, out_channels = out_channels_4, kernel_size = 3, stride = 1, padding = 1)
+        # # output: 8 * 8 * out_channels_4 neurons
+        # self.conv4_1 = torch.nn.Conv2d(in_channels = out_channels_4, out_channels = out_channels_4, kernel_size = 3, stride = 1, padding = 1)
         
-        if self.reg_batch_norm:
-            self.bn4 = torch.nn.BatchNorm2d(out_channels_4)
+        # if self.reg_batch_norm:
+        #     self.bn4 = torch.nn.BatchNorm2d(out_channels_4)
 
-        self.pool4 = torch.nn.MaxPool2d(kernel_size = 2, stride = 2)
-        # output: 4 * 4 * out_channels_3 neurons
+        # self.pool4 = torch.nn.MaxPool2d(kernel_size = 2, stride = 2)
+        # # output: 4 * 4 * out_channels_3 neurons
 
         # self.conv5 = torch.nn.Conv2d(in_channels = out_channels_4, out_channels = out_channels_5, kernel_size = 3, stride = 1, padding = 1)
         # # output: 8 * 8 * out_channels_5 neurons
@@ -121,18 +79,18 @@ class CNN(torch.nn.Module):
         # if self.reg_batch_norm:
         #     self.bn5 = torch.nn.BatchNorm2d(out_channels_5)
 
-        self.pool5 = torch.nn.MaxPool2d(kernel_size = 2, stride = 2)
-        # output: 4 * 4 * out_channels_3 neurons
+        # self.pool5 = torch.nn.MaxPool2d(kernel_size = 2, stride = 2)
+        # # output: 4 * 4 * out_channels_3 neurons
 
         self.flatten = torch.nn.Flatten() # A multi-dimensional feature map -> a 1D vector
         # output: 4 * 4 * out_channels_3 = 4096 neurons
 
-        neurons_after_conv_layers = 4608 #8192 # 512 # 4608 # 4096 # 36864
+        neurons_after_conv_layers = 4096 #8192 # 512 # 4608 # 4096 # 36864
         self.fc1 = torch.nn.Linear(neurons_after_conv_layers, 128)
         # output: 128 neurons
 
         if self.reg_batch_norm:
-            self.bn_fc1 = torch.nn.BatchNorm1d(512)
+            self.bn_fc1 = torch.nn.BatchNorm1d(128)
 
         self.fc2 = torch.nn.Linear(128, 512)
         # output: 512 neurons
@@ -144,19 +102,6 @@ class CNN(torch.nn.Module):
         # output: n_classes neurons
 
     def forward(self, x):
-        # x = self.conv_block1(x)
-        # if self.reg_batch_norm:
-        #     x = self.bn1(x)
-        
-        # x = self.conv_block2(x)
-        # if self.reg_batch_norm:
-        #     x = self.bn2(x)
-        
-        # x = self.conv_block3(x)
-        # if self.reg_batch_norm:
-        #     x = self.bn3(x)
-        
-
         x = self.conv1(x)
         if self.reg_batch_norm:
             x = self.bn1(x)
@@ -184,14 +129,14 @@ class CNN(torch.nn.Module):
 
         x = self.pool3(x)
         
-        x = self.conv4(x)
-        if self.reg_batch_norm:
-            x = self.bn4(x)
-        x = torch.relu(x)
-        # x = self.conv4_1(x)
+        # x = self.conv4(x)
+        # if self.reg_batch_norm:
+        #     x = self.bn4(x)
         # x = torch.relu(x)
+        # # x = self.conv4_1(x)
+        # # x = torch.relu(x)
 
-        x = self.pool4(x)
+        # x = self.pool4(x)
         
         # x = self.conv5(x)
         # if self.reg_batch_norm:
@@ -268,69 +213,70 @@ class ModelTrainer(object):
             self.device = torch.device("cpu")
         print(f"device: {self.device}")
 
-    def load_dataset(self, fine_grained = False, imsize = 96, batch_size = 16):
+    def load_dataset(self, fine_grained = False, imsize = 96, batch_size = 16, data_augmentation = True):
         self.training_set, self.validation_set, self.test_set, self.class_names = load_oxford_flowers102(imsize = imsize, fine = fine_grained)
 
         # print(len(self.training_set), len(self.validation_set), len(self.test_set))
 
         # Data augmentation
-        print("Start preparing data...")
-        transform_func = torchvision.transforms.Compose([
-            torchvision.transforms.RandomHorizontalFlip(), # Horizontal flip
-            # torchvision.transforms.Pad(padding = 10, padding_mode = "edge"), # Pad
-            torchvision.transforms.RandomRotation(degrees = 25),
-            torchvision.transforms.ColorJitter(brightness = 0.3, contrast = 0.3, saturation = 0.3, hue = 0.1),
+        if data_augmentation:
+            print("Start preparing data...")
+            transform_func = torchvision.transforms.Compose([
+                torchvision.transforms.RandomHorizontalFlip(), # Horizontal flip
+                # torchvision.transforms.Pad(padding = 10, padding_mode = "edge"), # Pad
+                torchvision.transforms.RandomRotation(degrees = 25),
+                torchvision.transforms.ColorJitter(brightness = 0.3, contrast = 0.3, saturation = 0.3, hue = 0.1),
+                
+                torchvision.transforms.RandomAffine(degrees = 15, translate = (0.1, 0.1)), # Affine
+                torchvision.transforms.CenterCrop(size = (imsize, imsize)),
+                torchvision.transforms.ToTensor()
+            ])
+
+            label_to_count = {}
+            label_to_imgs = {}
+            for x, y in self.training_set:
+                label = y
+                if label in label_to_count:
+                    label_to_count[label] += 1
+                else:
+                    label_to_count[label] = 1
+
+                if label in label_to_imgs:
+                    label_to_imgs[label].append(x)
+                else:
+                    label_to_imgs[label] = [x]
             
-            torchvision.transforms.RandomAffine(degrees = 15, translate = (0.1, 0.1)), # Affine
-            torchvision.transforms.CenterCrop(size = (imsize, imsize)),
-            torchvision.transforms.ToTensor()
-        ])
+            # coarse: {8: 291, 2: 164, 3: 798, 7: 103, 4: 368, 1: 49, 9: 97, 5: 201, 6: 136, 0: 115}
+            # fine-grained: {76: 231, 45: 176, 22: 71, 85: 38, 74: 100, 37: 36, 49: 72, 9: 25, 4: 45, 91: 46,
+            #  28: 58, 79: 85, 51: 65, 88: 164, 67: 34, 84: 43, 36: 88, 55: 89, 94: 108, 42: 110, 80: 146, 57: 94,
+            #  77: 117, 89: 62, 87: 134, 46: 47, 73: 151, 93: 142, 13: 28, 97: 62, 50: 238, 71: 76, 92: 26, 40: 107,
+            #  52: 73, 64: 82, 53: 41, 27: 46, 72: 174, 18: 29, 100: 38, 7: 65, 35: 55, 2: 20, 43: 73, 31: 25, 59: 89,
+            #  60: 30, 63: 32, 54: 51, 29: 65, 83: 66, 11: 67, 10: 67, 96: 46, 17: 62, 61: 35, 82: 111, 81: 92, 14: 29,
+            #  75: 87, 21: 39, 86: 43, 26: 20, 47: 51, 66: 22, 90: 56, 58: 47, 16: 65, 15: 21, 62: 34, 98: 43, 19: 36,
+            #  32: 26, 78: 21, 68: 34, 69: 42, 1: 40, 39: 47, 5: 25, 8: 26, 41: 39, 20: 20, 65: 41, 99: 29, 70: 58, 95: 71,
+            #  48: 29, 30: 32, 56: 47, 25: 21, 23: 22, 12: 29, 24: 21, 33: 20, 3: 36, 44: 20, 34: 23, 0: 20, 38: 21, 101: 28, 6: 20}
 
-        label_to_count = {}
-        label_to_imgs = {}
-        for x, y in self.training_set:
-            label = y
-            if label in label_to_count:
-                label_to_count[label] += 1
-            else:
-                label_to_count[label] = 1
+            img_and_labels = []
+            max_label_count = max(label_to_count.values()) # The maximum number of images of one label (coarse: 798, fine: 231)
+            for label, imgs in label_to_imgs.items():
+                augment_img_count = max_label_count - len(imgs)
+                index = 0
+                for i in range(augment_img_count):
+                    pil_img = torchvision.transforms.ToPILImage()(imgs[index])
+                    new_img = transform_func(pil_img)
+                    img_and_labels.append((new_img, label))
 
-            if label in label_to_imgs:
-                label_to_imgs[label].append(x)
-            else:
-                label_to_imgs[label] = [x]
-        
-        # coarse: {8: 291, 2: 164, 3: 798, 7: 103, 4: 368, 1: 49, 9: 97, 5: 201, 6: 136, 0: 115}
-        # fine-grained: {76: 231, 45: 176, 22: 71, 85: 38, 74: 100, 37: 36, 49: 72, 9: 25, 4: 45, 91: 46,
-        #  28: 58, 79: 85, 51: 65, 88: 164, 67: 34, 84: 43, 36: 88, 55: 89, 94: 108, 42: 110, 80: 146, 57: 94,
-        #  77: 117, 89: 62, 87: 134, 46: 47, 73: 151, 93: 142, 13: 28, 97: 62, 50: 238, 71: 76, 92: 26, 40: 107,
-        #  52: 73, 64: 82, 53: 41, 27: 46, 72: 174, 18: 29, 100: 38, 7: 65, 35: 55, 2: 20, 43: 73, 31: 25, 59: 89,
-        #  60: 30, 63: 32, 54: 51, 29: 65, 83: 66, 11: 67, 10: 67, 96: 46, 17: 62, 61: 35, 82: 111, 81: 92, 14: 29,
-        #  75: 87, 21: 39, 86: 43, 26: 20, 47: 51, 66: 22, 90: 56, 58: 47, 16: 65, 15: 21, 62: 34, 98: 43, 19: 36,
-        #  32: 26, 78: 21, 68: 34, 69: 42, 1: 40, 39: 47, 5: 25, 8: 26, 41: 39, 20: 20, 65: 41, 99: 29, 70: 58, 95: 71,
-        #  48: 29, 30: 32, 56: 47, 25: 21, 23: 22, 12: 29, 24: 21, 33: 20, 3: 36, 44: 20, 34: 23, 0: 20, 38: 21, 101: 28, 6: 20}
+                    index += 1
+                    if index >= len(imgs):
+                        index = 0
 
-        img_and_labels = []
-        max_label_count = max(label_to_count.values()) # The maximum number of images of one label (coarse: 798, fine: 231)
-        for label, imgs in label_to_imgs.items():
-            augment_img_count = max_label_count - len(imgs)
-            index = 0
-            for i in range(augment_img_count):
-                pil_img = torchvision.transforms.ToPILImage()(imgs[index])
-                new_img = transform_func(pil_img)
-                img_and_labels.append((new_img, label))
-
-                index += 1
-                if index >= len(imgs):
-                    index = 0
-
-                # FOR TEST
-                # augmented_img_pil = torchvision.transforms.ToPILImage()(new_img)
-                # augmented_img_pil.save('augmented_image.jpg')
-                # pil_img.save('original_image.jpg')
-        
-        augmented_dataset = AugmentedDataset(img_and_labels = img_and_labels)
-        self.training_set = torch.utils.data.ConcatDataset([self.training_set, augmented_dataset])
+                    # FOR TEST
+                    # augmented_img_pil = torchvision.transforms.ToPILImage()(new_img)
+                    # augmented_img_pil.save('augmented_image.jpg')
+                    # pil_img.save('original_image.jpg')
+            
+            augmented_dataset = AugmentedDataset(img_and_labels = img_and_labels)
+            self.training_set = torch.utils.data.ConcatDataset([self.training_set, augmented_dataset])
 
         # Use DataLoader to load data into batches
         self.training_data = torch.utils.data.DataLoader(self.training_set, batch_size = batch_size, shuffle = True)
@@ -441,7 +387,7 @@ class ModelTrainer(object):
                 average_loss_in_epoch_training = total_loss_training / num_batches_training
                 accuracy_in_epoch_training = total_correct_prediction_training / num_samples_training
 
-                # Validation
+                # Validation after each epoch
                 total_loss_validation = 0
                 total_correct_predictions_validation = 0
                 for x_batch, y_batch in self.validation_data:
@@ -489,10 +435,11 @@ if __name__ == "__main__":
     reg_batch_norm = False
     reg_wdecay_beta = 0 # 0.001
     fine_grained = False
-    imsize = 96 # 96 # 32
+    imsize = 32 # 96 # 32
     batch_size = 16
+    data_augmentation = False
     epochs = 50
-    learning_rate = 0.0001 # 0.00005
+    learning_rate = 0.001 # 0.00005
 
     def print_hyper_params():
         print("------------------------------------")
@@ -502,6 +449,7 @@ if __name__ == "__main__":
         print(f"fine_grained:{fine_grained}")
         print(f"imsize:{imsize}")
         print(f"batch_size:{batch_size}")
+        print(f"data_augmentation:{data_augmentation}")
         print(f"epochs:{epochs}")
         print(f"learning_rate:{learning_rate}")
         print("------------------------------------")
@@ -510,12 +458,12 @@ if __name__ == "__main__":
 
     trainer = ModelTrainer(reg_dropout_rate = reg_dropout_rate,
                            reg_batch_norm = reg_batch_norm,
-                           reg_wdecay_beta = reg_wdecay_beta
-                           )
+                           reg_wdecay_beta = reg_wdecay_beta)
     
     trainer.load_dataset(fine_grained = fine_grained,
                          imsize = imsize,
-                         batch_size = batch_size)
+                         batch_size = batch_size,
+                         data_augmentation = data_augmentation)
     
     trainer.train(load_from_file = False,
                   epochs = epochs,
