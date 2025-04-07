@@ -24,79 +24,98 @@ class CNN(torch.nn.Module):
         self.reg_dropout_rate = reg_dropout_rate
         self.reg_batch_norm = reg_batch_norm
 
-        out_channels_1 = 64
-        out_channels_2 = 128
-        out_channels_3 = 256
-        out_channels_4 = 512
+        out_channels_1 = 16
+        out_channels_2 = 32
+        out_channels_3 = 64
+        out_channels_4 = 128
         out_channels_5 = 256
         
         # in_channels: 3 (RGB)
         # input: 32 * 32 * 3 (width * height * in_channels)
         self.conv1 = torch.nn.Conv2d(in_channels = in_channels, out_channels = out_channels_1, kernel_size = 3, stride = 1, padding = 1)
         # output: 32 * 32 * out_channels_1 neurons
-        self.conv1_1 = torch.nn.Conv2d(in_channels = out_channels_1, out_channels = out_channels_1, kernel_size = 3, stride = 1, padding = 1)
+        # self.conv1_1 = torch.nn.Conv2d(in_channels = out_channels_1, out_channels = out_channels_1, kernel_size = 3, stride = 1, padding = 1)
+        # self.conv1_2 = torch.nn.Conv2d(in_channels = out_channels_1, out_channels = out_channels_1, kernel_size = 3, stride = 1, padding = 1)
 
         if self.reg_batch_norm:
             self.bn1 = torch.nn.BatchNorm2d(out_channels_1)
+
+        # if self.reg_dropout_rate > 0:
+        #     self.dropout1 = torch.nn.Dropout(self.reg_dropout_rate)
         
         self.pool1 = torch.nn.MaxPool2d(kernel_size = 2, stride = 2)
         # output: 16 * 16 * out_channels_1 neurons
 
         self.conv2 = torch.nn.Conv2d(in_channels = out_channels_1, out_channels = out_channels_2, kernel_size = 3, stride = 1, padding = 1)
         # output: 16 * 16 * out_channels_2 neurons
-        self.conv2_1 = torch.nn.Conv2d(in_channels = out_channels_2, out_channels = out_channels_2, kernel_size = 3, stride = 1, padding = 1)
+        # self.conv2_1 = torch.nn.Conv2d(in_channels = out_channels_2, out_channels = out_channels_2, kernel_size = 3, stride = 1, padding = 1)
+        # self.conv2_2 = torch.nn.Conv2d(in_channels = out_channels_2, out_channels = out_channels_2, kernel_size = 3, stride = 1, padding = 1)
         
         if self.reg_batch_norm:
             self.bn2 = torch.nn.BatchNorm2d(out_channels_2)
+
+        # if self.reg_dropout_rate > 0:
+        #     self.dropout2 = torch.nn.Dropout(self.reg_dropout_rate)
 
         self.pool2 = torch.nn.MaxPool2d(kernel_size = 2, stride = 2)
         # output: 8 * 8 * out_channels_2 neurons
 
         self.conv3 = torch.nn.Conv2d(in_channels = out_channels_2, out_channels = out_channels_3, kernel_size = 3, stride = 1, padding = 1)
         # output: 8 * 8 * out_channels_3 neurons
-        self.conv3_1 = torch.nn.Conv2d(in_channels = out_channels_3, out_channels = out_channels_3, kernel_size = 3, stride = 1, padding = 1)
+        # self.conv3_1 = torch.nn.Conv2d(in_channels = out_channels_3, out_channels = out_channels_3, kernel_size = 3, stride = 1, padding = 1)
+        # self.conv3_2 = torch.nn.Conv2d(in_channels = out_channels_3, out_channels = out_channels_3, kernel_size = 3, stride = 1, padding = 1)
         
         if self.reg_batch_norm:
             self.bn3 = torch.nn.BatchNorm2d(out_channels_3)
+
+        # if self.reg_dropout_rate > 0:
+        #     self.dropout3 = torch.nn.Dropout(self.reg_dropout_rate)
 
         self.pool3 = torch.nn.MaxPool2d(kernel_size = 2, stride = 2)
         # output: 4 * 4 * out_channels_3 neurons
 
         self.conv4 = torch.nn.Conv2d(in_channels = out_channels_3, out_channels = out_channels_4, kernel_size = 3, stride = 1, padding = 1)
         # output: 8 * 8 * out_channels_4 neurons
-        self.conv4_1 = torch.nn.Conv2d(in_channels = out_channels_4, out_channels = out_channels_4, kernel_size = 3, stride = 1, padding = 1)
+        # self.conv4_1 = torch.nn.Conv2d(in_channels = out_channels_4, out_channels = out_channels_4, kernel_size = 3, stride = 1, padding = 1)
+        # self.conv4_2 = torch.nn.Conv2d(in_channels = out_channels_4, out_channels = out_channels_4, kernel_size = 3, stride = 1, padding = 1)
         
         if self.reg_batch_norm:
             self.bn4 = torch.nn.BatchNorm2d(out_channels_4)
 
+        # if self.reg_dropout_rate > 0:
+        #     self.dropout4 = torch.nn.Dropout(self.reg_dropout_rate)
+
         self.pool4 = torch.nn.MaxPool2d(kernel_size = 2, stride = 2)
         # output: 4 * 4 * out_channels_3 neurons
 
-        # self.conv5 = torch.nn.Conv2d(in_channels = out_channels_4, out_channels = out_channels_5, kernel_size = 3, stride = 1, padding = 1)
-        # # output: 8 * 8 * out_channels_5 neurons
-        # self.conv5_1 = torch.nn.Conv2d(in_channels = out_channels_5, out_channels = out_channels_5, kernel_size = 3, stride = 1, padding = 1)
+        self.conv5 = torch.nn.Conv2d(in_channels = out_channels_4, out_channels = out_channels_5, kernel_size = 3, stride = 1, padding = 1)
+        # output: 8 * 8 * out_channels_5 neurons
+        self.conv5_1 = torch.nn.Conv2d(in_channels = out_channels_5, out_channels = out_channels_5, kernel_size = 3, stride = 1, padding = 1)
         
-        # if self.reg_batch_norm:
-        #     self.bn5 = torch.nn.BatchNorm2d(out_channels_5)
+        if self.reg_batch_norm:
+            self.bn5 = torch.nn.BatchNorm2d(out_channels_5)
 
-        # self.pool5 = torch.nn.MaxPool2d(kernel_size = 2, stride = 2)
-        # # output: 4 * 4 * out_channels_3 neurons
+        self.pool5 = torch.nn.MaxPool2d(kernel_size = 2, stride = 2)
+        # output: 4 * 4 * out_channels_3 neurons
 
         self.flatten = torch.nn.Flatten() # A multi-dimensional feature map -> a 1D vector
         # output: 4 * 4 * out_channels_3 = 4096 neurons
 
-        neurons_after_conv_layers = 18432 #8192 # 512 # 4608 # 4096 # 36864
+        neurons_after_conv_layers = 2304 #8192 # 512 # 4608 # 4096 # 36864
         self.fc1 = torch.nn.Linear(neurons_after_conv_layers, 128)
         # output: 128 neurons
 
         if self.reg_batch_norm:
             self.bn_fc1 = torch.nn.BatchNorm1d(128)
 
+        # if self.reg_dropout_rate > 0:
+        #     self.dropout5 = torch.nn.Dropout(self.reg_dropout_rate)
+
         self.fc2 = torch.nn.Linear(128, 512)
         # output: 512 neurons
 
         if self.reg_dropout_rate > 0:
-            self.dropout1 = torch.nn.Dropout(self.reg_dropout_rate)
+            self.dropout6 = torch.nn.Dropout(self.reg_dropout_rate)
 
         self.fc3 = torch.nn.Linear(512, n_classes)
         # output: n_classes neurons
@@ -108,7 +127,12 @@ class CNN(torch.nn.Module):
         x = torch.relu(x)
         # x = self.conv1_1(x)
         # x = torch.relu(x)
+        # x = self.conv1_2(x)
+        # x = torch.relu(x)
         
+        # if self.reg_dropout_rate > 0:
+        #     x = self.dropout1(x)
+
         x = self.pool1(x)
         
         x = self.conv2(x)
@@ -117,6 +141,11 @@ class CNN(torch.nn.Module):
         x = torch.relu(x)
         # x = self.conv2_1(x)
         # x = torch.relu(x)
+        # x = self.conv2_2(x)
+        # x = torch.relu(x)
+
+        # if self.reg_dropout_rate > 0:
+        #     x = self.dropout2(x)
 
         x = self.pool2(x)
 
@@ -126,6 +155,11 @@ class CNN(torch.nn.Module):
         x = torch.relu(x)
         # x = self.conv3_1(x)
         # x = torch.relu(x)
+        # x = self.conv3_2(x)
+        # x = torch.relu(x)
+
+        # if self.reg_dropout_rate > 0:
+        #     x = self.dropout3(x)
 
         x = self.pool3(x)
         
@@ -135,17 +169,22 @@ class CNN(torch.nn.Module):
         x = torch.relu(x)
         # x = self.conv4_1(x)
         # x = torch.relu(x)
+        # x = self.conv4_2(x)
+        # x = torch.relu(x)
+
+        # if self.reg_dropout_rate > 0:
+        #     x = self.dropout4(x)
 
         x = self.pool4(x)
         
-        # x = self.conv5(x)
-        # if self.reg_batch_norm:
-        #     x = self.bn5(x)
+        x = self.conv5(x)
+        if self.reg_batch_norm:
+            x = self.bn5(x)
+        x = torch.relu(x)
+        # x = self.conv5_1(x)
         # x = torch.relu(x)
-        # # x = self.conv5_1(x)
-        # # x = torch.relu(x)
 
-        # x = self.pool5(x)
+        x = self.pool5(x)
 
         x = self.flatten(x)
 
@@ -154,16 +193,18 @@ class CNN(torch.nn.Module):
         #     x = self.bn_fc1(x)
         x = torch.relu(x)
 
+        # if self.reg_dropout_rate > 0:
+        #     x = self.dropout5(x)
+
         x = self.fc2(x)
         x = torch.relu(x)
 
         if self.reg_dropout_rate > 0:
-            x = self.dropout1(x)
+            x = self.dropout6(x)
 
         x = self.fc3(x)
 
         return x
-    
 
 class AugmentedDataset(torch.utils.data.Dataset):
 
@@ -283,18 +324,26 @@ class ModelTrainer(object):
         self.validation_data = torch.utils.data.DataLoader(self.validation_set, batch_size = batch_size, shuffle = False)
         self.test_data = torch.utils.data.DataLoader(self.test_set, batch_size = batch_size, shuffle = False)
 
-        # TODO: for test CIFAR10
-        # transform_train = torchvision.transforms.ToTensor()
-        # path_to_data_folder = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'data_CIFAR10')
-        # training_set = torchvision.datasets.CIFAR10(root=path_to_data_folder, train=True, download=True, transform=transform_train)
-        # self.test_set = torchvision.datasets.CIFAR10(root=path_to_data_folder, train=False, download=True, transform=torchvision.transforms.ToTensor())
-        # self.training_set, self.validation_set = torch.utils.data.random_split(training_set, [45000, 5000])
+        # from collections import Counter
+        # # training_set, validation_set, test_set, class_names = load_oxford_flowers102(imsize=96, fine=True) # load fine grained version of the dataset with images 96x96 pixels
+        # train_classes = [self.training_set[i][1] for i in range(len(self.training_set))]
+        # class_counts = Counter(train_classes)
+        # n_classes = len(class_counts)
+        # class_weights = torch.tensor([1.0 / class_counts[c] for c in sorted(class_counts)], dtype=torch.float)
+        # class_weights = class_weights / class_weights.sum() * n_classes
 
-        # self.training_data = torch.utils.data.DataLoader(self.training_set, batch_size=100, shuffle=True)
-        # self.validation_data = torch.utils.data.DataLoader(self.validation_set, batch_size=100, shuffle=False)
-        # self.test_data = torch.utils.data.DataLoader(self.test_set, batch_size=100, shuffle=False)
-        # self.class_names = ['airplane', 'automobile', 'bird', 'cat', 'deer',
-        #        'dog', 'frog', 'horse', 'ship', 'truck']
+        # sample_weights = torch.tensor([class_weights[y] for y in train_classes], dtype=torch.float)
+
+        # sampler = torch.utils.data.WeightedRandomSampler(
+        #     weights = sample_weights,
+        #     num_samples = len(sample_weights),
+        #     replacement = True)
+
+        # self.training_data = torch.utils.data.DataLoader(self.training_set, batch_size=16, sampler=sampler,
+        #                                         num_workers=2, drop_last=True)
+        # self.validation_data = torch.utils.data.DataLoader(self.validation_set, batch_size=16, shuffle=False)
+        # self.test_data = torch.utils.data.DataLoader(self.test_set, batch_size=16, shuffle=False)
+
 
         # label_to_count = {}
         # for x_batch, y_batch in self.training_data:
@@ -325,7 +374,7 @@ class ModelTrainer(object):
             print(f"Loading weights from {self.saved_weights}")
             cnn.load_state_dict(torch.load(self.saved_weights, weights_only = True))
         else:
-
+        # if True:
             # Optimizer
             if self.reg_wdecay_beta:
                 weight_decay_params = []
@@ -343,11 +392,19 @@ class ModelTrainer(object):
             else:
                 optimizer = torch.optim.Adam(cnn.parameters(), lr = learning_rate)
 
+                    
+            # from torch.amp import autocast, GradScaler
+            # optimizer = torch.optim.AdamW(cnn.parameters(), lr=learning_rate, weight_decay=1e-4)
+            # scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, 'max', patience=3, factor=0.5)
+            # scaler = GradScaler('cuda')
+            
+
             loss = torch.nn.CrossEntropyLoss()
 
             history = {"loss": [], "accuracy": [], "validation_loss": [], "validation_accuracy": []}
 
             for epoch in range(1, epochs + 1):
+                cnn.train()
 
                 total_loss_training = 0
                 total_correct_prediction_training = 0
@@ -360,10 +417,18 @@ class ModelTrainer(object):
                     x_batch = x_batch.to(self.device)
                     y_batch = y_batch.to(self.device)
 
+
+                    # optimizer.zero_grad()
+
+                    # with autocast("cuda"):
                     y_predict = cnn(x_batch)
 
                     # Calculate loss
                     loss_value = loss(y_predict, y_batch)
+                    
+                    # scaler.scale(loss_value).backward()
+                    # scaler.step(optimizer)
+                    # scaler.update()
                     
                     # Update gradients and backpropagation update weights
                     optimizer.zero_grad()
@@ -388,16 +453,18 @@ class ModelTrainer(object):
                 accuracy_in_epoch_training = total_correct_prediction_training / num_samples_training
 
                 # Validation after each epoch
+                cnn.eval()
                 total_loss_validation = 0
                 total_correct_predictions_validation = 0
-                for x_batch, y_batch in self.validation_data:
-                    x_batch = x_batch.to(self.device)
-                    y_batch = y_batch.to(self.device)
+                with torch.no_grad():
+                    for x_batch, y_batch in self.validation_data:
+                        x_batch = x_batch.to(self.device)
+                        y_batch = y_batch.to(self.device)
 
-                    y_predict = cnn(x_batch)
-                    total_loss_validation += loss(y_predict, y_batch).item()
-                    y_predict = torch.argmax(y_predict, dim = 1)
-                    total_correct_predictions_validation += torch.sum(y_predict == y_batch).item()
+                        y_predict = cnn(x_batch)
+                        total_loss_validation += loss(y_predict, y_batch).item()
+                        y_predict = torch.argmax(y_predict, dim = 1)
+                        total_correct_predictions_validation += torch.sum(y_predict == y_batch).item()
 
                 num_batches_validation = len(self.validation_data)
                 num_samples_validation = len(self.validation_set)
@@ -407,42 +474,51 @@ class ModelTrainer(object):
 
                 print(f"loss: {average_loss_in_epoch_training:.4f} - accuracy: {accuracy_in_epoch_training:.4f}")
                 print(f"validation loss: {average_loss_in_epoch_validation:.4f} - validation accuracy: {accuracy_in_epoch_validation:.4f}")
-        
+
+                # scheduler.step(accuracy_in_epoch_validation)
+
             # Save model to file
             print(f"Saving model to {self.saved_weights}...")
             torch.save(cnn.state_dict(), self.saved_weights)
 
     def test(self):
+        self.cnn.eval()
         accuracy_test = 0
-        for x_batch, y_batch in self.test_data:
-            # Must move the data to the device, because the model is on the device
-            x_batch = x_batch.to(self.device)
-            y_batch = y_batch.to(self.device)
 
-            y_pred = self.cnn(x_batch)
-            y_pred = torch.argmax(y_pred, dim=1)
-            accuracy_test += torch.sum(y_pred == y_batch).item()
+        with torch.no_grad():
+            for x_batch, y_batch in self.test_data:
+                # Must move the data to the device, because the model is on the device
+                x_batch = x_batch.to(self.device)
+                y_batch = y_batch.to(self.device)
+
+                y_pred = self.cnn(x_batch)
+                y_pred = torch.argmax(y_pred, dim=1)
+                accuracy_test += torch.sum(y_pred == y_batch).item()
 
         accuracy_test /= len(self.test_set)
         print(f'Test accuracy : {accuracy_test:.2f}')
 
 
 if __name__ == "__main__":
-    cnn = CNN(in_channels = 3, n_classes = 10, reg_dropout_rate = 0.4, reg_batch_norm = True)
-    print_number_of_trainable_model_parameters(cnn) # should not be more than 15 million (15,000,000)
 
-    reg_dropout_rate = 0.3
-    reg_batch_norm = False
+    load_from_file = False
+    reg_dropout_rate = 0 # 0.3
+    reg_batch_norm = True #True
     reg_wdecay_beta = 0.001
     fine_grained = False
     imsize = 96 # 32
-    batch_size = 16
+    batch_size = 128 # 16
     data_augmentation = True
     epochs = 50
-    learning_rate = 0.0001 # 0.00005
+    learning_rate = 0.001 # 0.00005
+
+    cnn = CNN(in_channels = 3, n_classes = 10, reg_dropout_rate = reg_dropout_rate, reg_batch_norm = reg_batch_norm)
+    print_number_of_trainable_model_parameters(cnn) # should not be more than 15 million (15,000,000)
+    print(cnn)
 
     def print_hyper_params():
         print("------------------------------------")
+        print(f"load_from_file:{load_from_file}")
         print(f"reg_dropout_rate:{reg_dropout_rate}")
         print(f"reg_batch_norm:{reg_batch_norm}")
         print(f"reg_wdecay_beta:{reg_wdecay_beta}")
@@ -465,7 +541,7 @@ if __name__ == "__main__":
                          batch_size = batch_size,
                          data_augmentation = data_augmentation)
     
-    trainer.train(load_from_file = False,
+    trainer.train(load_from_file = load_from_file,
                   epochs = epochs,
                   learning_rate = learning_rate)
     
