@@ -143,6 +143,8 @@ class AutoEncoderTrainer(object):
             loss = torch.nn.MSELoss()
 
             for epoch in range(1, epochs + 1):
+                ae_encoder.train()
+                ae_decoder.train()
 
                 total_loss_training = 0
                 total_sample_count = 0
@@ -184,15 +186,18 @@ class AutoEncoderTrainer(object):
                 average_loss_in_epoch_training = total_loss_training / num_batches_training
 
                 # Validation after each epoch
+                ae_encoder.eval()
+                ae_decoder.eval()
                 total_loss_validation = 0
-                for x_batch, y_batch in self.validation_data:
-                    x_batch = x_batch.to(self.device)
+                with torch.no_grad():
+                    for x_batch, y_batch in self.validation_data:
+                        x_batch = x_batch.to(self.device)
 
-                    latent_data = ae_encoder(x_batch)
-                    reconstructed_imgs = ae_decoder(latent_data)
+                        latent_data = ae_encoder(x_batch)
+                        reconstructed_imgs = ae_decoder(latent_data)
 
-                    loss_value = loss(reconstructed_imgs, x_batch)
-                    total_loss_validation += loss_value.item()
+                        loss_value = loss(reconstructed_imgs, x_batch)
+                        total_loss_validation += loss_value.item()
 
                 num_batches_validation = len(self.validation_data)
 
@@ -207,17 +212,21 @@ class AutoEncoderTrainer(object):
             torch.save(ae_decoder.state_dict(), self.saved_weights_decoder)
 
     def test(self):
+        self.ae_encoder.eval()
+        self.ae_decoder.eval()
+
         loss = torch.nn.MSELoss()
 
         total_loss_test = 0
-        for x_batch, y_batch in self.test_data:
-            x_batch = x_batch.to(self.device)
+        with torch.no_grad():
+            for x_batch, y_batch in self.test_data:
+                x_batch = x_batch.to(self.device)
 
-            latent_data = self.ae_encoder(x_batch)
-            reconstructed_imgs = self.ae_decoder(latent_data)
+                latent_data = self.ae_encoder(x_batch)
+                reconstructed_imgs = self.ae_decoder(latent_data)
 
-            loss_value = loss(reconstructed_imgs, x_batch)
-            total_loss_test += loss_value.item()
+                loss_value = loss(reconstructed_imgs, x_batch)
+                total_loss_test += loss_value.item()
 
         num_batches_test = len(self.test_data)
         average_loss_in_test = total_loss_test / num_batches_test
