@@ -145,8 +145,8 @@ class AutoEncoderTrainer(object):
             self.ae_decoder.to(self.device)
         
         print(f"Loading weights from {self.saved_weights_encoder} and {self.saved_weights_decoder}")
-        self.ae_encoder.load_state_dict(torch.load(self.saved_weights_encoder, weights_only = True))
-        self.ae_decoder.load_state_dict(torch.load(self.saved_weights_decoder, weights_only = True))
+        self.ae_encoder.load_state_dict(torch.load(self.saved_weights_encoder, weights_only = True, map_location = self.device))
+        self.ae_decoder.load_state_dict(torch.load(self.saved_weights_decoder, weights_only = True, map_location = self.device))
 
     def train(self, load_from_file = False, epochs = 50, learning_rate = 0.001, latent_dim = 128):
         ae_encoder = AE_Encoder(in_channels = 3, imsize = self.imsize, latent_dim = latent_dim)
@@ -300,6 +300,7 @@ if __name__ == "__main__":
 
     def print_hyper_params():
         print("------------------------------------")
+        print(f"load_from_file:{load_from_file}")
         print(f"imsize:{imsize}")
         print(f"batch_size:{batch_size}")
         print(f"epochs:{epochs}")

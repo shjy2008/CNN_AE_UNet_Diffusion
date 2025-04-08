@@ -204,6 +204,9 @@ class CNN(torch.nn.Module):
 
         x = self.fc3(x)
 
+        # Adding softmax produces worse results
+        # x = torch.softmax(x, dim = 1) # dim = 1 because x is in the shape [batch_size, n_classes]
+
         return x
 
 class AugmentedDataset(torch.utils.data.Dataset):
@@ -372,7 +375,7 @@ class ModelTrainer(object):
         if load_from_file and os.path.isfile(self.saved_weights):
             # Load previous model
             print(f"Loading weights from {self.saved_weights}")
-            cnn.load_state_dict(torch.load(self.saved_weights, weights_only = True))
+            cnn.load_state_dict(torch.load(self.saved_weights, weights_only = True, map_location = self.device))
         else:
         # if True:
             # Optimizer
@@ -404,6 +407,7 @@ class ModelTrainer(object):
             history = {"loss": [], "accuracy": [], "validation_loss": [], "validation_accuracy": []}
 
             for epoch in range(1, epochs + 1):
+                # Switch to train mode, activate BatchNorm and Dropout
                 cnn.train()
 
                 total_loss_training = 0
@@ -453,10 +457,11 @@ class ModelTrainer(object):
                 accuracy_in_epoch_training = total_correct_prediction_training / num_samples_training
 
                 # Validation after each epoch
+                # Switch to evaluation mode, deactivate BatchNorm and Dropout
                 cnn.eval()
                 total_loss_validation = 0
                 total_correct_predictions_validation = 0
-                with torch.no_grad():
+                with torch.no_grad(): # In evaluation mode, don't calculate gradient, save computational cost
                     for x_batch, y_batch in self.validation_data:
                         x_batch = x_batch.to(self.device)
                         y_batch = y_batch.to(self.device)
@@ -485,7 +490,7 @@ class ModelTrainer(object):
         self.cnn.eval()
         accuracy_test = 0
 
-        with torch.no_grad():
+        with torch.no_grad(): # In evaluation mode, don't calculate gradient, save computational cost
             for x_batch, y_batch in self.test_data:
                 # Must move the data to the device, because the model is on the device
                 x_batch = x_batch.to(self.device)
@@ -505,7 +510,7 @@ if __name__ == "__main__":
     reg_dropout_rate = 0 # 0.3
     reg_batch_norm = True #True
     reg_wdecay_beta = 0.001
-    fine_grained = False
+    fine_grained = True
     imsize = 96 # 32
     batch_size = 128 # 16
     data_augmentation = True

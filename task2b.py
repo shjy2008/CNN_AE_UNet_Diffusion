@@ -43,6 +43,7 @@ class UNetDenoiser(torch.nn.Module):
     
     def forward(self, x):
         # -----Downsampling----- #
+        # Input: 6*6*128
         x = self.down1_1(x)
         x = torch.relu(x)
 
@@ -61,10 +62,17 @@ class UNetDenoiser(torch.nn.Module):
         # -----Upsampling----- #
         x = self.up1_1(x) # output shape: (256, 6, 6)
         x = torch.relu(x)
-        x = self.up1_2(torch.concat([x1_2, x], dim = 0)) # Skip connection: pass the output of x1_2 to up1_2
+
+        concat_dim = 0
+        if x.ndim == 3: # Only process one latent image, x.shape like (256, 6, 6)
+            concat_dim = 0
+        elif x.ndim == 4: # Batch processing, x.shape like (batch_size, 256, 6, 6)
+            concat_dim = 1
+        x = self.up1_2(torch.concat((x1_2, x), dim = concat_dim)) # Skip connection: pass the output of x1_2 to up1_2
         x = torch.relu(x)
 
         x = self.output(x)
+        # Output: 6*6*128
 
         return x
 
@@ -133,7 +141,7 @@ class UNetDenoiserTrainer(object):
         if load_from_file and os.path.isfile(self.saved_weights):
             # Load previous model
             print(f"Loading weights from {self.saved_weights}")
-            self.denoiser_model.load_state_dict(torch.load(self.saved_weights, weights_only = True))
+            self.denoiser_model.load_state_dict(torch.load(self.saved_weights, weights_only = True, map_location = self.device))
         else:
             # Optimizer
             optimizer = torch.optim.Adam(self.denoiser_model.parameters(), lr = learning_rate)
@@ -240,21 +248,26 @@ class UNetDenoiserTrainer(object):
         self.denoiser_model.eval()
 
         # Generate random noise
-        random_noise = torch.randn(1, 3, self.imsize, self.imsize, device = self.device)
+        all_images = []
+        for i in range(10):
+            random_noise = torch.randn(3, self.imsize, self.imsize, device = self.device)
 
-        # Encode the random noise
-        random_latent_noise = self.ae_encoder(random_noise)
+            # Encode the random noise
+            random_latent_noise = self.ae_encoder(random_noise)
 
-        # Denoise in the latent space for multiple times
-        denoised_images = []
-        current_denoised_latent_image = random_latent_noise
-        for i in range(self.denoise_steps):
-            current_denoised_latent_image = self.denoiser_model(current_denoised_latent_image)
-            current_denoised_image = self.ae_decoder(current_denoised_latent_image) # Decode from latent space back to an image
-            denoised_images.append(current_denoised_image)
-        
+            # Denoise in the latent space for multiple times
+            denoised_images = [random_noise]
+            current_denoised_latent_image = random_latent_noise
+            for step_index in range(self.denoise_steps):
+                current_denoised_latent_image = self.denoiser_model(current_denoised_latent_image)
+                current_denoised_image = self.ae_decoder(current_denoised_latent_image) # Decode from latent space back to an image
+                denoised_images.append(current_denoised_image)
+            
+            all_images.extend(denoised_images)
+            
         # Save and check the resulting images
-        torchvision.utils.save_image(denoised_images, os.path.join(self.saved_images_path, f"task2b_denoised_images"), nrow=len(denoised_images))
+        image_count_in_a_row = self.denoise_steps + 1 #int(len(all_images) / (self.denoise_steps + 1))
+        torchvision.utils.save_image(all_images, os.path.join(self.saved_images_path, f"task2b_denoised_images.jpg"), nrow = image_count_in_a_row)
 
     # Now this function is only for test
     def save_image(self):
@@ -277,12 +290,12 @@ class UNetDenoiserTrainer(object):
 
 if __name__ == "__main__":
 
-    laod_from_file = False
+    load_from_file = True
     imsize = 96
     batch_size = 16
     epochs = 50
-    learning_rate = 0.0001
-    denoise_steps = 10 # How many steps to denoise from random noise to image
+    learning_rate = 0.001
+    denoise_steps = 20 # How many steps to denoise from random noise to image
 
     def print_hyper_params():
         print("------------------------------------")
@@ -297,8 +310,10 @@ if __name__ == "__main__":
     trainer = UNetDenoiserTrainer(imsize = imsize, denoise_steps = denoise_steps)
     trainer.load_dataset(fine_grained = False, batch_size = batch_size)
     # trainer.save_image()
-    trainer.train()
-    trainer.test()
+    trainer.train(load_from_file = load_from_file, 
+                  epochs = epochs, 
+                  learning_rate = learning_rate)
+    # trainer.test()
     trainer.generate_images()
 
     print_hyper_params()
