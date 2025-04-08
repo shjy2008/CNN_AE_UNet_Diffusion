@@ -10,15 +10,23 @@ class AE_Encoder(torch.nn.Module):
         super(AE_Encoder, self).__init__()
 
         # Because we don't use max pooling in AutoEncoder, we use stride = 2 instead of 1 to do downsampling
+        # Input: 96*96*3
         self.conv1 = torch.nn.Conv2d(in_channels = in_channels, out_channels = 16, kernel_size = (3, 3), stride = 2, padding = 1)
+        # Output: 48*48*16
+
         self.conv2 = torch.nn.Conv2d(in_channels = 16, out_channels = 32, kernel_size = (3, 3), stride = 2, padding = 1)
+        # Output: 24*24*32
+
         self.conv3 = torch.nn.Conv2d(in_channels = 32, out_channels = 64, kernel_size = (3, 3), stride = 2, padding = 1)
+        # Output: 12*12*64
+
         self.conv4 = torch.nn.Conv2d(in_channels = 64, out_channels = 128, kernel_size = (3, 3), stride = 2, padding = 1)
+        # Output: 6*6*128
 
-        self.flatten = torch.nn.Flatten()
+        # self.flatten = torch.nn.Flatten()
 
-        # 96/2/2/2/2 = 6
-        self.fc1 = torch.nn.Linear(128 * 6 * 6, latent_dim)
+        # # 96/2/2/2/2 = 6
+        # self.fc1 = torch.nn.Linear(128 * 6 * 6, latent_dim)
 
     def forward(self, x):
         x = self.conv1(x)
@@ -31,11 +39,11 @@ class AE_Encoder(torch.nn.Module):
         x = torch.relu(x)
 
         x = self.conv4(x)
-        x = torch.relu(x)
+        # x = torch.relu(x)
 
-        x = self.flatten(x)
+        # x = self.flatten(x)
 
-        x = self.fc1(x)
+        # x = self.fc1(x)
 
         return x
 
@@ -44,20 +52,28 @@ class AE_Decoder(torch.nn.Module):
     def __init__(self, out_channels = 3, imsize = 96, latent_dim = 128):
         super(AE_Decoder, self).__init__()
 
-        # 96/2/2/2/2 = 6
-        self.fc1 = torch.nn.Linear(latent_dim, 128 * 6 * 6)
+        # # 96/2/2/2/2 = 6
+        # self.fc1 = torch.nn.Linear(latent_dim, 128 * 6 * 6)
 
+        # Input: 6*6*128
         self.conv_transpose1 = torch.nn.ConvTranspose2d(in_channels = 128, out_channels = 64, kernel_size = (3, 3), stride = 2, padding = 1, output_padding=1)
+        # Output: 12*12*64
+
         self.conv_transpose2 = torch.nn.ConvTranspose2d(in_channels = 64, out_channels = 32, kernel_size = (3, 3), stride = 2, padding = 1, output_padding=1)
+        # Output: 24*24*32
+
         self.conv_transpose3 = torch.nn.ConvTranspose2d(in_channels = 32, out_channels = 16, kernel_size = (3, 3), stride = 2, padding = 1, output_padding=1)
+        # Output: 48*48*16
+
         self.conv_transpose4 = torch.nn.ConvTranspose2d(in_channels = 16, out_channels = out_channels, kernel_size = (3, 3), stride = 2, padding = 1, output_padding=1)
+        # Output: 96*96*3
 
     def forward(self, x):
-        x = self.fc1(x)
-        x = torch.relu(x)
+        # x = self.fc1(x)
+        # x = torch.relu(x)
 
-        batch_size = x.shape[0]
-        x = x.reshape(batch_size, 128, 6, 6)
+        # batch_size = x.shape[0]
+        # x = x.reshape(batch_size, 128, 6, 6)
 
         x = self.conv_transpose1(x)
         x = torch.relu(x)
@@ -119,6 +135,18 @@ class AutoEncoderTrainer(object):
         self.training_data = torch.utils.data.DataLoader(self.training_set, batch_size = batch_size, shuffle = True)
         self.validation_data = torch.utils.data.DataLoader(self.validation_set, batch_size = batch_size, shuffle = False)
         self.test_data = torch.utils.data.DataLoader(self.test_set, batch_size = batch_size, shuffle = False)
+    
+    def load_local_model(self):
+        if self.ae_encoder == None:
+            self.ae_encoder = AE_Encoder(in_channels = 3)
+            self.ae_encoder.to(self.device)
+        if self.ae_decoder == None:
+            self.ae_decoder = AE_Decoder(out_channels = 3)
+            self.ae_decoder.to(self.device)
+        
+        print(f"Loading weights from {self.saved_weights_encoder} and {self.saved_weights_decoder}")
+        self.ae_encoder.load_state_dict(torch.load(self.saved_weights_encoder, weights_only = True))
+        self.ae_decoder.load_state_dict(torch.load(self.saved_weights_decoder, weights_only = True))
 
     def train(self, load_from_file = False, epochs = 50, learning_rate = 0.001, latent_dim = 128):
         ae_encoder = AE_Encoder(in_channels = 3, imsize = self.imsize, latent_dim = latent_dim)
@@ -131,9 +159,7 @@ class AutoEncoderTrainer(object):
         
         if load_from_file and os.path.isfile(self.saved_weights_encoder) and os.path.isfile(self.saved_weights_decoder):
             # Load previous models
-            print(f"Loading weights from {self.saved_weights_encoder} and {self.saved_weights_decoder}")
-            ae_encoder.load_state_dict(torch.load(self.saved_weights_encoder, weights_only = True))
-            ae_decoder.load_state_dict(torch.load(self.saved_weights_decoder, weights_only = True))
+            self.load_local_model()
         else:
             # Optimizer
             # optimizer_encoder = torch.optim.Adam(ae_encoder.parameters(), lr = learning_rate)
@@ -143,6 +169,7 @@ class AutoEncoderTrainer(object):
             loss = torch.nn.MSELoss()
 
             for epoch in range(1, epochs + 1):
+                # Switch to train mode, activate BatchNorm and Dropout
                 ae_encoder.train()
                 ae_decoder.train()
 
@@ -165,8 +192,8 @@ class AutoEncoderTrainer(object):
                     # optimizer_encoder.zero_grad()
                     # optimizer_decoder.zero_grad()
                     optimizer.zero_grad()
-                    loss_value.backward()
-                    optimizer.step()
+                    loss_value.backward() # Calculate gradient
+                    optimizer.step() # Update weights and biases
                     # optimizer_encoder.step()
                     # optimizer_decoder.step()
 
@@ -186,10 +213,11 @@ class AutoEncoderTrainer(object):
                 average_loss_in_epoch_training = total_loss_training / num_batches_training
 
                 # Validation after each epoch
+                # Switch to evaluation mode, deactivate BatchNorm and Dropout
                 ae_encoder.eval()
                 ae_decoder.eval()
                 total_loss_validation = 0
-                with torch.no_grad():
+                with torch.no_grad():  # In evaluation mode, don't calculate gradient, save computational cost
                     for x_batch, y_batch in self.validation_data:
                         x_batch = x_batch.to(self.device)
 
@@ -212,13 +240,14 @@ class AutoEncoderTrainer(object):
             torch.save(ae_decoder.state_dict(), self.saved_weights_decoder)
 
     def test(self):
+        # Switch to evaluation mode, deactivate BatchNorm and Dropout
         self.ae_encoder.eval()
         self.ae_decoder.eval()
 
         loss = torch.nn.MSELoss()
 
         total_loss_test = 0
-        with torch.no_grad():
+        with torch.no_grad(): # In evaluation mode, don't calculate gradient, save computational cost
             for x_batch, y_batch in self.test_data:
                 x_batch = x_batch.to(self.device)
 
