@@ -20,9 +20,6 @@ class AE_Encoder(torch.nn.Module):
         self.conv3 = torch.nn.Conv2d(in_channels = 32, out_channels = 64, kernel_size = (3, 3), stride = 2, padding = 1)
         # Output: 12*12*64
 
-        # self.conv4 = torch.nn.Conv2d(in_channels = 64, out_channels = 128, kernel_size = (3, 3), stride = 2, padding = 1)
-        # Output: 6*6*128
-
 
     def forward(self, x):
         x = self.conv1(x)
@@ -32,9 +29,6 @@ class AE_Encoder(torch.nn.Module):
         x = torch.relu(x)
 
         x = self.conv3(x)
-        # x = torch.relu(x)
-
-        # x = self.conv4(x)
 
         return x
 
@@ -43,31 +37,24 @@ class AE_Decoder(torch.nn.Module):
     def __init__(self, out_channels = 3, imsize = 96):
         super(AE_Decoder, self).__init__()
 
-        # # Input: 6*6*128
-        # self.conv_transpose1 = torch.nn.ConvTranspose2d(in_channels = 128, out_channels = 64, kernel_size = (3, 3), stride = 2, padding = 1, output_padding=1)
-        # # Output: 12*12*64
-
         # Input: 12*12*64
-        self.conv_transpose2 = torch.nn.ConvTranspose2d(in_channels = 64, out_channels = 32, kernel_size = (3, 3), stride = 2, padding = 1, output_padding=1)
+        self.conv_transpose1 = torch.nn.ConvTranspose2d(in_channels = 64, out_channels = 32, kernel_size = (3, 3), stride = 2, padding = 1, output_padding=1)
         # Output: 24*24*32
 
-        self.conv_transpose3 = torch.nn.ConvTranspose2d(in_channels = 32, out_channels = 16, kernel_size = (3, 3), stride = 2, padding = 1, output_padding=1)
+        self.conv_transpose2 = torch.nn.ConvTranspose2d(in_channels = 32, out_channels = 16, kernel_size = (3, 3), stride = 2, padding = 1, output_padding=1)
         # Output: 48*48*16
 
-        self.conv_transpose4 = torch.nn.ConvTranspose2d(in_channels = 16, out_channels = out_channels, kernel_size = (3, 3), stride = 2, padding = 1, output_padding=1)
+        self.conv_transpose3 = torch.nn.ConvTranspose2d(in_channels = 16, out_channels = out_channels, kernel_size = (3, 3), stride = 2, padding = 1, output_padding=1)
         # Output: 96*96*3
 
     def forward(self, x):
-        # x = self.conv_transpose1(x)
-        # x = torch.relu(x)
+        x = self.conv_transpose1(x)
+        x = torch.relu(x)
 
         x = self.conv_transpose2(x)
         x = torch.relu(x)
 
         x = self.conv_transpose3(x)
-        x = torch.relu(x)
-
-        x = self.conv_transpose4(x)
 
         return x
 
@@ -144,8 +131,6 @@ class AutoEncoderTrainer(object):
             self.load_local_model()
         else:
             # Optimizer
-            # optimizer_encoder = torch.optim.Adam(ae_encoder.parameters(), lr = learning_rate)
-            # optimizer_decoder = torch.optim.Adam(ae_decoder.parameters(), lr = learning_rate)
             optimizer = torch.optim.Adam(list(ae_encoder.parameters()) + list(ae_decoder.parameters()), lr = learning_rate)
 
             loss = torch.nn.MSELoss()
@@ -171,13 +156,9 @@ class AutoEncoderTrainer(object):
                     loss_value = loss(reconstructed_imgs, x_batch)
 
                     # Update gradients and backpropagation update weights
-                    # optimizer_encoder.zero_grad()
-                    # optimizer_decoder.zero_grad()
                     optimizer.zero_grad()
                     loss_value.backward() # Calculate gradient
                     optimizer.step() # Update weights and biases
-                    # optimizer_encoder.step()
-                    # optimizer_decoder.step()
 
                     total_loss_training += loss_value.item()
 
@@ -263,7 +244,7 @@ class AutoEncoderTrainer(object):
 if __name__ == "__main__":
 
     load_from_file = False
-    imsize = 96 # 96 # 32
+    imsize = 96
     batch_size = 16
     epochs = 150
     learning_rate = 0.0001 # 0.00005
