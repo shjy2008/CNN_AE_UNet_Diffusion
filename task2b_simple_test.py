@@ -429,18 +429,18 @@ class UNetDenoiserTrainer(object):
 
                 print(f"Epoch {epoch}/{epochs}")
 
-                '''
+                
                 # # Test training the first image only
                 inputs = []
                 labels = []
                 
-                image_samples = [
+                image_samples = [ # TODO: set to more/all images and check, because 6 can work if noise is 0.05*(i+1)
                                   self.training_set[0][0].to(self.device),
-                                  # self.training_set[100][0].to(self.device),
-                                  # self.training_set[200][0].to(self.device),
-                                  # self.training_set[300][0].to(self.device),
-                                  # self.training_set[400][0].to(self.device),
-                                  # self.training_set[600][0].to(self.device)
+                                  self.training_set[100][0].to(self.device),
+                                  self.training_set[200][0].to(self.device),
+                                  self.training_set[300][0].to(self.device),
+                                  self.training_set[400][0].to(self.device),
+                                  self.training_set[600][0].to(self.device)
                                   ]
                 
                 for image_sample in image_samples:
@@ -497,9 +497,9 @@ class UNetDenoiserTrainer(object):
                 optimizer.step() # # Update weights and biases
 
                 total_loss_training += batch_loss.item()
-                '''
-
                 
+
+                '''
                 batches_loop = tqdm.tqdm(enumerate(self.training_data), total = len(self.training_data), bar_format = '{n_fmt}/{total_fmt} [{bar}] - ETA: {remaining}{postfix}', ascii = ' >=')
 
                 for i, (x_batch, y_batch) in batches_loop:
@@ -546,7 +546,7 @@ class UNetDenoiserTrainer(object):
                     total_loss_training += batch_loss.item()
 
                     batches_loop.set_postfix_str(f"loss: {total_loss_training/(i + 1):.4f}")
-                
+                '''
 
 
                     
@@ -621,7 +621,7 @@ class UNetDenoiserTrainer(object):
     def generate_images_test(self):
         random_noise = self.training_set[0][0].to(self.device)
         # random_noise = self.add_gaussian_noise_to_image(random_noise, std = 0.1)
-        random_noise = self.create_noisy_images_tensor(random_noise)[-5]
+        random_noise = self.create_noisy_images_tensor(random_noise)[-3]
         
         # random_noise = torch.randn(3, self.imsize, self.imsize, device = self.device)# * 2.8
         # random_noise = torch.clamp(random_noise, 0, 1)
@@ -698,7 +698,7 @@ if __name__ == "__main__":
 
     imsize = 96
     batch_size = 16
-    epochs = 50
+    epochs = 2000
     learning_rate = 0.0001
     denoise_steps = 10 # How many steps to denoise from random noise to image
 
