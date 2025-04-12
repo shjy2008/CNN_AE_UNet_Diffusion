@@ -34,8 +34,6 @@ class CNN(torch.nn.Module):
         # input: 32 * 32 * 3 (width * height * in_channels)
         self.conv1 = torch.nn.Conv2d(in_channels = in_channels, out_channels = out_channels_1, kernel_size = 3, stride = 1, padding = 1)
         # output: 32 * 32 * out_channels_1 neurons
-        # self.conv1_1 = torch.nn.Conv2d(in_channels = out_channels_1, out_channels = out_channels_1, kernel_size = 3, stride = 1, padding = 1)
-        # self.conv1_2 = torch.nn.Conv2d(in_channels = out_channels_1, out_channels = out_channels_1, kernel_size = 3, stride = 1, padding = 1)
 
         if self.reg_batch_norm:
             self.bn1 = torch.nn.BatchNorm2d(out_channels_1)
@@ -48,8 +46,6 @@ class CNN(torch.nn.Module):
 
         self.conv2 = torch.nn.Conv2d(in_channels = out_channels_1, out_channels = out_channels_2, kernel_size = 3, stride = 1, padding = 1)
         # output: 16 * 16 * out_channels_2 neurons
-        # self.conv2_1 = torch.nn.Conv2d(in_channels = out_channels_2, out_channels = out_channels_2, kernel_size = 3, stride = 1, padding = 1)
-        # self.conv2_2 = torch.nn.Conv2d(in_channels = out_channels_2, out_channels = out_channels_2, kernel_size = 3, stride = 1, padding = 1)
         
         if self.reg_batch_norm:
             self.bn2 = torch.nn.BatchNorm2d(out_channels_2)
@@ -62,8 +58,6 @@ class CNN(torch.nn.Module):
 
         self.conv3 = torch.nn.Conv2d(in_channels = out_channels_2, out_channels = out_channels_3, kernel_size = 3, stride = 1, padding = 1)
         # output: 8 * 8 * out_channels_3 neurons
-        # self.conv3_1 = torch.nn.Conv2d(in_channels = out_channels_3, out_channels = out_channels_3, kernel_size = 3, stride = 1, padding = 1)
-        # self.conv3_2 = torch.nn.Conv2d(in_channels = out_channels_3, out_channels = out_channels_3, kernel_size = 3, stride = 1, padding = 1)
         
         if self.reg_batch_norm:
             self.bn3 = torch.nn.BatchNorm2d(out_channels_3)
@@ -76,8 +70,6 @@ class CNN(torch.nn.Module):
 
         self.conv4 = torch.nn.Conv2d(in_channels = out_channels_3, out_channels = out_channels_4, kernel_size = 3, stride = 1, padding = 1)
         # output: 8 * 8 * out_channels_4 neurons
-        # self.conv4_1 = torch.nn.Conv2d(in_channels = out_channels_4, out_channels = out_channels_4, kernel_size = 3, stride = 1, padding = 1)
-        # self.conv4_2 = torch.nn.Conv2d(in_channels = out_channels_4, out_channels = out_channels_4, kernel_size = 3, stride = 1, padding = 1)
         
         if self.reg_batch_norm:
             self.bn4 = torch.nn.BatchNorm2d(out_channels_4)
@@ -90,7 +82,6 @@ class CNN(torch.nn.Module):
 
         self.conv5 = torch.nn.Conv2d(in_channels = out_channels_4, out_channels = out_channels_5, kernel_size = 3, stride = 1, padding = 1)
         # output: 8 * 8 * out_channels_5 neurons
-        self.conv5_1 = torch.nn.Conv2d(in_channels = out_channels_5, out_channels = out_channels_5, kernel_size = 3, stride = 1, padding = 1)
         
         if self.reg_batch_norm:
             self.bn5 = torch.nn.BatchNorm2d(out_channels_5)
@@ -125,10 +116,6 @@ class CNN(torch.nn.Module):
         if self.reg_batch_norm:
             x = self.bn1(x)
         x = torch.relu(x)
-        # x = self.conv1_1(x)
-        # x = torch.relu(x)
-        # x = self.conv1_2(x)
-        # x = torch.relu(x)
         
         # if self.reg_dropout_rate > 0:
         #     x = self.dropout1(x)
@@ -139,10 +126,6 @@ class CNN(torch.nn.Module):
         if self.reg_batch_norm:
             x = self.bn2(x)
         x = torch.relu(x)
-        # x = self.conv2_1(x)
-        # x = torch.relu(x)
-        # x = self.conv2_2(x)
-        # x = torch.relu(x)
 
         # if self.reg_dropout_rate > 0:
         #     x = self.dropout2(x)
@@ -153,10 +136,6 @@ class CNN(torch.nn.Module):
         if self.reg_batch_norm:
             x = self.bn3(x)
         x = torch.relu(x)
-        # x = self.conv3_1(x)
-        # x = torch.relu(x)
-        # x = self.conv3_2(x)
-        # x = torch.relu(x)
 
         # if self.reg_dropout_rate > 0:
         #     x = self.dropout3(x)
@@ -167,10 +146,6 @@ class CNN(torch.nn.Module):
         if self.reg_batch_norm:
             x = self.bn4(x)
         x = torch.relu(x)
-        # x = self.conv4_1(x)
-        # x = torch.relu(x)
-        # x = self.conv4_2(x)
-        # x = torch.relu(x)
 
         # if self.reg_dropout_rate > 0:
         #     x = self.dropout4(x)
@@ -181,8 +156,6 @@ class CNN(torch.nn.Module):
         if self.reg_batch_norm:
             x = self.bn5(x)
         x = torch.relu(x)
-        # x = self.conv5_1(x)
-        # x = torch.relu(x)
 
         x = self.pool5(x)
 
@@ -260,14 +233,11 @@ class ModelTrainer(object):
     def load_dataset(self, fine_grained = False, imsize = 96, batch_size = 16, data_augmentation = True):
         self.training_set, self.validation_set, self.test_set, self.class_names = load_oxford_flowers102(imsize = imsize, fine = fine_grained)
 
-        # print(len(self.training_set), len(self.validation_set), len(self.test_set))
-
         # Data augmentation
         if data_augmentation:
             print("Start preparing data...")
             transform_func = torchvision.transforms.Compose([
                 torchvision.transforms.RandomHorizontalFlip(), # Horizontal flip
-                # torchvision.transforms.Pad(padding = 10, padding_mode = "edge"), # Pad
                 torchvision.transforms.RandomRotation(degrees = 25),
                 torchvision.transforms.ColorJitter(brightness = 0.3, contrast = 0.3, saturation = 0.3, hue = 0.1),
                 
@@ -313,11 +283,6 @@ class ModelTrainer(object):
                     index += 1
                     if index >= len(imgs):
                         index = 0
-
-                    # FOR TEST
-                    # augmented_img_pil = torchvision.transforms.ToPILImage()(new_img)
-                    # augmented_img_pil.save('augmented_image.jpg')
-                    # pil_img.save('original_image.jpg')
             
             augmented_dataset = AugmentedDataset(img_and_labels = img_and_labels)
             self.training_set = torch.utils.data.ConcatDataset([self.training_set, augmented_dataset])
@@ -326,40 +291,6 @@ class ModelTrainer(object):
         self.training_data = torch.utils.data.DataLoader(self.training_set, batch_size = batch_size, shuffle = True)
         self.validation_data = torch.utils.data.DataLoader(self.validation_set, batch_size = batch_size, shuffle = False)
         self.test_data = torch.utils.data.DataLoader(self.test_set, batch_size = batch_size, shuffle = False)
-
-        # from collections import Counter
-        # # training_set, validation_set, test_set, class_names = load_oxford_flowers102(imsize=96, fine=True) # load fine grained version of the dataset with images 96x96 pixels
-        # train_classes = [self.training_set[i][1] for i in range(len(self.training_set))]
-        # class_counts = Counter(train_classes)
-        # n_classes = len(class_counts)
-        # class_weights = torch.tensor([1.0 / class_counts[c] for c in sorted(class_counts)], dtype=torch.float)
-        # class_weights = class_weights / class_weights.sum() * n_classes
-
-        # sample_weights = torch.tensor([class_weights[y] for y in train_classes], dtype=torch.float)
-
-        # sampler = torch.utils.data.WeightedRandomSampler(
-        #     weights = sample_weights,
-        #     num_samples = len(sample_weights),
-        #     replacement = True)
-
-        # self.training_data = torch.utils.data.DataLoader(self.training_set, batch_size=16, sampler=sampler,
-        #                                         num_workers=2, drop_last=True)
-        # self.validation_data = torch.utils.data.DataLoader(self.validation_set, batch_size=16, shuffle=False)
-        # self.test_data = torch.utils.data.DataLoader(self.test_set, batch_size=16, shuffle=False)
-
-
-        # label_to_count = {}
-        # for x_batch, y_batch in self.training_data:
-        #     for y in y_batch:
-        #         label = y.item()
-        #         if label in label_to_count:
-        #             label_to_count[label] += 1
-        #         else:
-        #             label_to_count[label] = 1
-        
-        # print(f"label_to_count: {label_to_count}")
-
-        # TODO: weighted loss
     
     def train(self, load_from_file = False, epochs = 50, learning_rate = 0.001):
         cnn = CNN(in_channels = 3, 
@@ -395,12 +326,6 @@ class ModelTrainer(object):
             else:
                 optimizer = torch.optim.Adam(cnn.parameters(), lr = learning_rate)
 
-                    
-            # from torch.amp import autocast, GradScaler
-            # optimizer = torch.optim.AdamW(cnn.parameters(), lr=learning_rate, weight_decay=1e-4)
-            # scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, 'max', patience=3, factor=0.5)
-            # scaler = GradScaler('cuda')
-            
 
             loss = torch.nn.CrossEntropyLoss()
 
@@ -421,18 +346,10 @@ class ModelTrainer(object):
                     x_batch = x_batch.to(self.device)
                     y_batch = y_batch.to(self.device)
 
-
-                    # optimizer.zero_grad()
-
-                    # with autocast("cuda"):
                     y_predict = cnn(x_batch)
 
                     # Calculate loss
                     loss_value = loss(y_predict, y_batch)
-                    
-                    # scaler.scale(loss_value).backward()
-                    # scaler.step(optimizer)
-                    # scaler.update()
                     
                     # Update gradients and backpropagation update weights
                     optimizer.zero_grad()
@@ -480,8 +397,6 @@ class ModelTrainer(object):
                 print(f"loss: {average_loss_in_epoch_training:.4f} - accuracy: {accuracy_in_epoch_training:.4f}")
                 print(f"validation loss: {average_loss_in_epoch_validation:.4f} - validation accuracy: {accuracy_in_epoch_validation:.4f}")
 
-                # scheduler.step(accuracy_in_epoch_validation)
-
             # Save model to file
             print(f"Saving model to {self.saved_weights}...")
             torch.save(cnn.state_dict(), self.saved_weights)
@@ -508,7 +423,7 @@ if __name__ == "__main__":
 
     load_from_file = False
     reg_dropout_rate = 0 # 0.3
-    reg_batch_norm = True #True
+    reg_batch_norm = True # False
     reg_wdecay_beta = 0.001
     fine_grained = True
     imsize = 96 # 32
