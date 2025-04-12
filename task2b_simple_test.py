@@ -29,6 +29,17 @@ def print_number_of_trainable_model_parameters(model):
             trainable_model_params += param.numel()
     print(f"trainable model parameters: {trainable_model_params}\nall model parameters: {all_model_params}\npercentage of trainable model parameters: {100 * trainable_model_params / all_model_params:.2f}%")
 
+class AugmentedDataset(torch.utils.data.Dataset):
+
+    def __init__(self, img_and_labels):
+        self.img_and_labels = img_and_labels
+    
+    def __getitem__(self, idx):
+        return self.img_and_labels[idx]
+
+    def __len__(self):
+        return len(self.img_and_labels)
+    
 # class UNetDenoiser(torch.nn.Module):
 #     def __init__(self):
 #         super(UNetDenoiser, self).__init__()
@@ -388,9 +399,64 @@ class UNetDenoiserTrainer(object):
             self.device = torch.device("cpu")
         print(f"device: {self.device}")
 
-    def load_dataset(self, fine_grained = False, batch_size = 16):
+    def load_dataset(self, fine_grained = False, batch_size = 16, data_augmentation = True):
         self.training_set, self.validation_set, self.test_set, self.class_names = load_oxford_flowers102(imsize = self.imsize, fine = fine_grained)
 
+        if data_augmentation:
+            print("Data augmentation. Start preparing data... (Wait about 1 minute...)")
+            transform_func = torchvision.transforms.Compose([
+                torchvision.transforms.RandomHorizontalFlip(), # Horizontal flip
+                # torchvision.transforms.RandomRotation(degrees = 25),
+                # torchvision.transforms.ColorJitter(brightness = 0.3, contrast = 0.3, saturation = 0.3, hue = 0.1),
+                
+                # torchvision.transforms.RandomAffine(degrees = 15, translate = (0.1, 0.1)), # Affine
+                torchvision.transforms.CenterCrop(size = (imsize, imsize)),
+                torchvision.transforms.ToTensor()
+            ])
+
+            label_to_count = {}
+            label_to_imgs = {}
+            for x, y in self.training_set:
+                label = y
+                if label in label_to_count:
+                    label_to_count[label] += 1
+                else:
+                    label_to_count[label] = 1
+
+                if label in label_to_imgs:
+                    label_to_imgs[label].append(x)
+                else:
+                    label_to_imgs[label] = [x]
+            
+            # Training data:
+            # coarse: {8: 291, 2: 164, 3: 798, 7: 103, 4: 368, 1: 49, 9: 97, 5: 201, 6: 136, 0: 115}
+            # fine-grained: {76: 231, 45: 176, 22: 71, 85: 38, 74: 100, 37: 36, 49: 72, 9: 25, 4: 45, 91: 46,
+            #  28: 58, 79: 85, 51: 65, 88: 164, 67: 34, 84: 43, 36: 88, 55: 89, 94: 108, 42: 110, 80: 146, 57: 94,
+            #  77: 117, 89: 62, 87: 134, 46: 47, 73: 151, 93: 142, 13: 28, 97: 62, 50: 238, 71: 76, 92: 26, 40: 107,
+            #  52: 73, 64: 82, 53: 41, 27: 46, 72: 174, 18: 29, 100: 38, 7: 65, 35: 55, 2: 20, 43: 73, 31: 25, 59: 89,
+            #  60: 30, 63: 32, 54: 51, 29: 65, 83: 66, 11: 67, 10: 67, 96: 46, 17: 62, 61: 35, 82: 111, 81: 92, 14: 29,
+            #  75: 87, 21: 39, 86: 43, 26: 20, 47: 51, 66: 22, 90: 56, 58: 47, 16: 65, 15: 21, 62: 34, 98: 43, 19: 36,
+            #  32: 26, 78: 21, 68: 34, 69: 42, 1: 40, 39: 47, 5: 25, 8: 26, 41: 39, 20: 20, 65: 41, 99: 29, 70: 58, 95: 71,
+            #  48: 29, 30: 32, 56: 47, 25: 21, 23: 22, 12: 29, 24: 21, 33: 20, 3: 36, 44: 20, 34: 23, 0: 20, 38: 21, 101: 28, 6: 20}
+
+            img_and_labels = []
+            max_label_count = max(label_to_count.values()) # The maximum number of images of one label (coarse: 798, fine: 231)
+            for label, imgs in label_to_imgs.items():
+                augment_img_count = max_label_count - len(imgs)
+                index = 0
+                for i in range(augment_img_count):
+                    pil_img = torchvision.transforms.ToPILImage()(imgs[index])
+                    new_img = transform_func(pil_img)
+                    img_and_labels.append((new_img, label))
+
+                    index += 1
+                    if index >= len(imgs):
+                        index = 0
+            
+            augmented_dataset = AugmentedDataset(img_and_labels = img_and_labels)
+            self.training_set = torch.utils.data.ConcatDataset([self.training_set, augmented_dataset])
+
+        
         # Use DataLoader to load data into batches
         self.training_data = torch.utils.data.DataLoader(self.training_set, batch_size = batch_size, shuffle = True)
         self.validation_data = torch.utils.data.DataLoader(self.validation_set, batch_size = batch_size, shuffle = False)
@@ -423,7 +489,7 @@ class UNetDenoiserTrainer(object):
 
 
             
-            sample_count = 10
+            sample_count = 50
             indices = random.sample(range(len(self.training_set)), sample_count)
             image_samples = [self.training_set[i][0].to(self.device) for i in indices]
             # image_samples = [ # TODO: set to more/all images and check, because 6 can work if noise is 0.05*(i+1)
@@ -435,6 +501,13 @@ class UNetDenoiserTrainer(object):
             #                   self.training_set[600][0].to(self.device)
             #                   ]
             torchvision.utils.save_image(image_samples, os.path.join(self.saved_images_path, f"image_samples.jpg"), nrow = 10)
+
+            # Check data pixel color imbalance
+            pixel_sum = torch.zeros(3, device=self.device)
+            for image in image_samples:
+                pixel_sum += image.sum(dim=[1, 2])  # image is [3, H, W], so we sum over H and W
+            color_distribution = pixel_sum / pixel_sum.sum()
+            print("Pixel color distribution (R, G, B):", color_distribution)
         
             for epoch in range(1, epochs + 1):
                 # Switch to training mode, activate BatchNorm and Dropout
@@ -704,6 +777,7 @@ if __name__ == "__main__":
 
     imsize = 96
     batch_size = 16
+    data_augmentation = False
     epochs = 2000
     learning_rate = 0.0001
     denoise_steps = 10 # How many steps to denoise from random noise to image
@@ -720,7 +794,8 @@ if __name__ == "__main__":
     print_hyper_params()
 
     trainer = UNetDenoiserTrainer(imsize = imsize, denoise_steps = denoise_steps)
-    trainer.load_dataset(fine_grained = False, batch_size = batch_size)
+    trainer.load_dataset(fine_grained = False, batch_size = batch_size, 
+                         data_augmentation = data_augmentation and load_from_file == False)
     trainer.save_test()
     trainer.train(load_from_file = load_from_file, 
                   epochs = epochs, 
