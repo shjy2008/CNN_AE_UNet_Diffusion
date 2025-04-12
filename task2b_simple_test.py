@@ -11,7 +11,7 @@ import random
 import matplotlib.pyplot as plt
 
 ############# Please change this ################
-LOAD_FROM_FILE = True
+LOAD_FROM_FILE = False
 #################################################
 
 # TODO: make the model simpler and try to make 1 image denoise good
@@ -59,287 +59,287 @@ def print_number_of_trainable_model_parameters(model):
 #         return x
 
 
-# class UNetDenoiser(torch.nn.Module):
-#     def __init__(self):
-#         super(UNetDenoiser, self).__init__()
-
-#         # -----Downsampling----- #
-#         # Input: 12*12*64
-#         self.down1_1 = torch.nn.Conv2d(in_channels = 64, out_channels = 128, kernel_size = (3, 3), stride = 1, padding = 1)
-#         # Output: 12*12*128
-#         # self.bn1 = torch.nn.BatchNorm2d(128)
-
-#         self.down1_2 = torch.nn.Conv2d(in_channels = 128, out_channels = 128, kernel_size = (3, 3), stride = 1, padding = 1)
-#         # Output: 12*12*128
-#         # self.bn2 = torch.nn.BatchNorm2d(128)
-
-#         self.pool1 = torch.nn.MaxPool2d(kernel_size = 2, stride = 2)
-#         # Output: 6*6*128
-
-
-#         # Input: 6*6*128
-#         self.down2_1 = torch.nn.Conv2d(in_channels = 128, out_channels = 256, kernel_size = (3, 3), stride = 1, padding = 1)
-#         # Output: 6*6*256
-#         # self.bn3 = torch.nn.BatchNorm2d(256)
-
-#         self.down2_2 = torch.nn.Conv2d(in_channels = 256, out_channels = 256, kernel_size = (3, 3), stride = 1, padding = 1)
-#         # Output: 6*6*256
-#         # self.bn4 = torch.nn.BatchNorm2d(256)
-
-#         self.pool2 = torch.nn.MaxPool2d(kernel_size = 2, stride = 2)
-#         # Output: 3*3*256
-
-
-#         # -----Bottleneck----- #
-#         self.bottleneck1 = torch.nn.Conv2d(in_channels = 256, out_channels = 512, kernel_size = (3, 3), stride = 1, padding = 1)
-#         # Output: 3*3*512
-#         # self.bn5 = torch.nn.BatchNorm2d(512)
-        
-#         self.bottleneck2 = torch.nn.Conv2d(in_channels = 512, out_channels = 256, kernel_size = (3, 3), stride = 1, padding = 1)
-#         # Output: 3*3*256
-#         # self.bn6 = torch.nn.BatchNorm2d(256)
-
-
-#         # -----Upsampling----- #
-#         self.up2_1 = torch.nn.ConvTranspose2d(in_channels = 256, out_channels = 256, kernel_size = (3, 3), stride = 2, padding = 1, output_padding = 1)
-#         # Output: 6*6*256
-#         # self.bn7 = torch.nn.BatchNorm2d(256)
-
-#         # Input: the output of down2_2 concatenate the output of up2_1
-#         self.up2_2 = torch.nn.Conv2d(in_channels = (256 + 256), out_channels = 128, kernel_size = (3, 3), stride = 1, padding = 1)
-#         # Output: 6*6*128
-#         # self.bn8 = torch.nn.BatchNorm2d(128)
-
-#         self.up1_1 = torch.nn.ConvTranspose2d(in_channels = 128, out_channels = 128, kernel_size = (3, 3), stride = 2, padding = 1, output_padding = 1)
-#         # Output: 12*12*128
-#         # self.bn9 = torch.nn.BatchNorm2d(128)
-
-#         # Input: the output of down1_2 concatenate the output of up1_1
-#         self.up1_2 = torch.nn.Conv2d(in_channels = (128 + 128), out_channels = 64, kernel_size = (3, 3), stride = 1, padding = 1)
-#         # Output: 12*12*64
-#         # self.bn10 = torch.nn.BatchNorm2d(64)
-
-#         self.output = torch.nn.Conv2d(in_channels = 64, out_channels = 64, kernel_size = (3, 3), stride = 1, padding = 1)
-#         # Output: 12*12*64
-    
-    
-#     def forward(self, x):
-#         is_batch = x.ndim == 4
-#         if not is_batch:
-#             x = x.unsqueeze(0) # (batch_size(1), channels, w, h)
-
-#         # -----Downsampling----- #
-#         x = self.down1_1(x)
-#         x = torch.relu(x)
-
-#         x = self.down1_2(x)
-#         x = torch.relu(x)
-#         x1_2 = x
-
-#         x = self.pool1(x)
-
-
-#         x = self.down2_1(x)
-#         x = torch.relu(x)
-
-#         x = self.down2_2(x)
-#         x = torch.relu(x)
-#         x2_2 = x
-
-#         x = self.pool2(x)
-
-
-#         # -----Bottleneck----- #
-#         x = self.bottleneck1(x)
-#         x = torch.relu(x)
-
-#         x = self.bottleneck2(x)
-#         x = torch.relu(x)
-
-
-#         # -----Upsampling----- #
-#         x = self.up2_1(x)
-#         x = torch.relu(x)
-
-#         concat_dim = 1
-#         if x.ndim == 3: # Only process one latent image, x.shape like (256, 6, 6)
-#             concat_dim = 0
-#         elif x.ndim == 4: # Batch processing, x.shape like (batch_size, 256, 6, 6)
-#             concat_dim = 1
-#         x = self.up2_2(torch.concat((x2_2, x), dim = concat_dim)) # Skip connection: pass the output of x2_2 to up2_2
-#         x = torch.relu(x)
-
-
-#         x = self.up1_1(x)
-#         x = torch.relu(x)
-
-#         x = self.up1_2(torch.concat((x1_2, x), dim = concat_dim)) # Skip connection: pass the output of x1_2 to up1_2
-#         x = torch.relu(x)
-
-
-#         x = self.output(x)
-
-#         if not is_batch:
-#             x = x.squeeze(0)
-
-#         return x
-
 class UNetDenoiser(torch.nn.Module):
     def __init__(self):
         super(UNetDenoiser, self).__init__()
+
         # -----Downsampling----- #
         # Input: 12*12*64
-        self.down1_1 = torch.nn.Conv2d(in_channels=64, out_channels=128, kernel_size=(3, 3), stride=1, padding=1)
-        self.bn1_1 = torch.nn.BatchNorm2d(128)
+        self.down1_1 = torch.nn.Conv2d(in_channels = 64, out_channels = 128, kernel_size = (3, 3), stride = 1, padding = 1)
         # Output: 12*12*128
-        self.down1_2 = torch.nn.Conv2d(in_channels=128, out_channels=128, kernel_size=(3, 3), stride=1, padding=1)
-        self.bn1_2 = torch.nn.BatchNorm2d(128)
+        # self.bn1 = torch.nn.BatchNorm2d(128)
+
+        self.down1_2 = torch.nn.Conv2d(in_channels = 128, out_channels = 128, kernel_size = (3, 3), stride = 1, padding = 1)
         # Output: 12*12*128
-        self.pool1 = torch.nn.MaxPool2d(kernel_size=2, stride=2)
+        # self.bn2 = torch.nn.BatchNorm2d(128)
+
+        self.pool1 = torch.nn.MaxPool2d(kernel_size = 2, stride = 2)
         # Output: 6*6*128
-        
+
+
         # Input: 6*6*128
-        self.down2_1 = torch.nn.Conv2d(in_channels=128, out_channels=256, kernel_size=(3, 3), stride=1, padding=1)
-        self.bn2_1 = torch.nn.BatchNorm2d(256)
+        self.down2_1 = torch.nn.Conv2d(in_channels = 128, out_channels = 256, kernel_size = (3, 3), stride = 1, padding = 1)
         # Output: 6*6*256
-        self.down2_2 = torch.nn.Conv2d(in_channels=256, out_channels=256, kernel_size=(3, 3), stride=1, padding=1)
-        self.bn2_2 = torch.nn.BatchNorm2d(256)
+        # self.bn3 = torch.nn.BatchNorm2d(256)
+
+        self.down2_2 = torch.nn.Conv2d(in_channels = 256, out_channels = 256, kernel_size = (3, 3), stride = 1, padding = 1)
         # Output: 6*6*256
-        self.pool2 = torch.nn.MaxPool2d(kernel_size=2, stride=2)
+        # self.bn4 = torch.nn.BatchNorm2d(256)
+
+        self.pool2 = torch.nn.MaxPool2d(kernel_size = 2, stride = 2)
         # Output: 3*3*256
-        
+
+
         # -----Bottleneck----- #
-        self.bottleneck1 = torch.nn.Conv2d(in_channels=256, out_channels=512, kernel_size=(3, 3), stride=1, padding=1)
-        self.bn_bottle1 = torch.nn.BatchNorm2d(512)
+        self.bottleneck1 = torch.nn.Conv2d(in_channels = 256, out_channels = 512, kernel_size = (3, 3), stride = 1, padding = 1)
         # Output: 3*3*512
+        # self.bn5 = torch.nn.BatchNorm2d(512)
         
-        self.bottleneck2 = torch.nn.Conv2d(in_channels=512, out_channels=512, kernel_size=(3, 3), stride=1, padding=1)
-        self.bn_bottle2 = torch.nn.BatchNorm2d(512)
-        # Output: 3*3*512
-        
-        self.bottleneck3 = torch.nn.Conv2d(in_channels=512, out_channels=256, kernel_size=(3, 3), stride=1, padding=1)
-        self.bn_bottle3 = torch.nn.BatchNorm2d(256)
+        self.bottleneck2 = torch.nn.Conv2d(in_channels = 512, out_channels = 256, kernel_size = (3, 3), stride = 1, padding = 1)
         # Output: 3*3*256
-        
+        # self.bn6 = torch.nn.BatchNorm2d(256)
+
+
         # -----Upsampling----- #
-        self.up2_1 = torch.nn.ConvTranspose2d(in_channels=256, out_channels=256, kernel_size=(3, 3), stride=2, padding=1, output_padding=1)
-        self.bn_up2_1 = torch.nn.BatchNorm2d(256)
+        self.up2_1 = torch.nn.ConvTranspose2d(in_channels = 256, out_channels = 256, kernel_size = (3, 3), stride = 2, padding = 1, output_padding = 1)
         # Output: 6*6*256
-        
+        # self.bn7 = torch.nn.BatchNorm2d(256)
+
         # Input: the output of down2_2 concatenate the output of up2_1
-        self.up2_2 = torch.nn.Conv2d(in_channels=(256 + 256), out_channels=256, kernel_size=(3, 3), stride=1, padding=1)
-        self.bn_up2_2 = torch.nn.BatchNorm2d(256)
-        # Output: 6*6*256
-        
-        self.up2_3 = torch.nn.Conv2d(in_channels=256, out_channels=128, kernel_size=(3, 3), stride=1, padding=1)
-        self.bn_up2_3 = torch.nn.BatchNorm2d(128)
+        self.up2_2 = torch.nn.Conv2d(in_channels = (256 + 256), out_channels = 128, kernel_size = (3, 3), stride = 1, padding = 1)
         # Output: 6*6*128
-        
-        self.up1_1 = torch.nn.ConvTranspose2d(in_channels=128, out_channels=128, kernel_size=(3, 3), stride=2, padding=1, output_padding=1)
-        self.bn_up1_1 = torch.nn.BatchNorm2d(128)
+        # self.bn8 = torch.nn.BatchNorm2d(128)
+
+        self.up1_1 = torch.nn.ConvTranspose2d(in_channels = 128, out_channels = 128, kernel_size = (3, 3), stride = 2, padding = 1, output_padding = 1)
         # Output: 12*12*128
-        
+        # self.bn9 = torch.nn.BatchNorm2d(128)
+
         # Input: the output of down1_2 concatenate the output of up1_1
-        self.up1_2 = torch.nn.Conv2d(in_channels=(128 + 128), out_channels=128, kernel_size=(3, 3), stride=1, padding=1)
-        self.bn_up1_2 = torch.nn.BatchNorm2d(128)
-        # Output: 12*12*128
-        
-        self.up1_3 = torch.nn.Conv2d(in_channels=128, out_channels=64, kernel_size=(3, 3), stride=1, padding=1)
-        self.bn_up1_3 = torch.nn.BatchNorm2d(64)
+        self.up1_2 = torch.nn.Conv2d(in_channels = (128 + 128), out_channels = 64, kernel_size = (3, 3), stride = 1, padding = 1)
         # Output: 12*12*64
-        
-        self.output = torch.nn.Conv2d(in_channels=64, out_channels=64, kernel_size=(3, 3), stride=1, padding=1)
+        # self.bn10 = torch.nn.BatchNorm2d(64)
+
+        self.output = torch.nn.Conv2d(in_channels = 64, out_channels = 64, kernel_size = (3, 3), stride = 1, padding = 1)
         # Output: 12*12*64
-        
-        # Residual connection
-        self.res_conv = torch.nn.Conv2d(in_channels=64, out_channels=64, kernel_size=(1, 1), stride=1, padding=0)
+    
     
     def forward(self, x):
         is_batch = x.ndim == 4
         if not is_batch:
             x = x.unsqueeze(0) # (batch_size(1), channels, w, h)
-            
-        input_x = x  # Save input for residual connection
-        
+
         # -----Downsampling----- #
         x = self.down1_1(x)
-        x = self.bn1_1(x)
-        x = torch.nn.functional.leaky_relu(x, 0.2)
-        
+        x = torch.relu(x)
+
         x = self.down1_2(x)
-        x = self.bn1_2(x)
-        x = torch.nn.functional.leaky_relu(x, 0.2)
-        x1_2 = x  # Skip connection 1
-        
+        x = torch.relu(x)
+        x1_2 = x
+
         x = self.pool1(x)
-        
+
+
         x = self.down2_1(x)
-        x = self.bn2_1(x)
-        x = torch.nn.functional.leaky_relu(x, 0.2)
-        
+        x = torch.relu(x)
+
         x = self.down2_2(x)
-        x = self.bn2_2(x)
-        x = torch.nn.functional.leaky_relu(x, 0.2)
-        x2_2 = x  # Skip connection 2
-        
+        x = torch.relu(x)
+        x2_2 = x
+
         x = self.pool2(x)
-        
+
+
         # -----Bottleneck----- #
         x = self.bottleneck1(x)
-        x = self.bn_bottle1(x)
-        x = torch.nn.functional.leaky_relu(x, 0.2)
-        
+        x = torch.relu(x)
+
         x = self.bottleneck2(x)
-        x = self.bn_bottle2(x)
-        x = torch.nn.functional.leaky_relu(x, 0.2)
-        
-        x = self.bottleneck3(x)
-        x = self.bn_bottle3(x)
-        x = torch.nn.functional.leaky_relu(x, 0.2)
-        
+        x = torch.relu(x)
+
+
         # -----Upsampling----- #
         x = self.up2_1(x)
-        x = self.bn_up2_1(x)
-        x = torch.nn.functional.leaky_relu(x, 0.2)
-        
+        x = torch.relu(x)
+
         concat_dim = 1
-        if x.ndim == 3:  # Only process one latent image
+        if x.ndim == 3: # Only process one latent image, x.shape like (256, 6, 6)
             concat_dim = 0
-        elif x.ndim == 4:  # Batch processing
+        elif x.ndim == 4: # Batch processing, x.shape like (batch_size, 256, 6, 6)
             concat_dim = 1
-            
-        x = torch.cat((x2_2, x), dim=concat_dim)  # Skip connection
-        x = self.up2_2(x)
-        x = self.bn_up2_2(x)
-        x = torch.nn.functional.leaky_relu(x, 0.2)
-        
-        x = self.up2_3(x)
-        x = self.bn_up2_3(x)
-        x = torch.nn.functional.leaky_relu(x, 0.2)
-        
+        x = self.up2_2(torch.concat((x2_2, x), dim = concat_dim)) # Skip connection: pass the output of x2_2 to up2_2
+        x = torch.relu(x)
+
+
         x = self.up1_1(x)
-        x = self.bn_up1_1(x)
-        x = torch.nn.functional.leaky_relu(x, 0.2)
-        
-        x = torch.cat((x1_2, x), dim=concat_dim)  # Skip connection
-        x = self.up1_2(x)
-        x = self.bn_up1_2(x)
-        x = torch.nn.functional.leaky_relu(x, 0.2)
-        
-        x = self.up1_3(x)
-        x = self.bn_up1_3(x)
-        x = torch.nn.functional.leaky_relu(x, 0.2)
-        
+        x = torch.relu(x)
+
+        x = self.up1_2(torch.concat((x1_2, x), dim = concat_dim)) # Skip connection: pass the output of x1_2 to up1_2
+        x = torch.relu(x)
+
+
         x = self.output(x)
-        
-        # Add residual connection to help preserve color information
-        res = self.res_conv(input_x)
-        x = x + res
-        
+
         if not is_batch:
             x = x.squeeze(0)
 
         return x
+
+# class UNetDenoiser(torch.nn.Module):
+#     def __init__(self):
+#         super(UNetDenoiser, self).__init__()
+#         # -----Downsampling----- #
+#         # Input: 12*12*64
+#         self.down1_1 = torch.nn.Conv2d(in_channels=64, out_channels=128, kernel_size=(3, 3), stride=1, padding=1)
+#         self.bn1_1 = torch.nn.BatchNorm2d(128)
+#         # Output: 12*12*128
+#         self.down1_2 = torch.nn.Conv2d(in_channels=128, out_channels=128, kernel_size=(3, 3), stride=1, padding=1)
+#         self.bn1_2 = torch.nn.BatchNorm2d(128)
+#         # Output: 12*12*128
+#         self.pool1 = torch.nn.MaxPool2d(kernel_size=2, stride=2)
+#         # Output: 6*6*128
+        
+#         # Input: 6*6*128
+#         self.down2_1 = torch.nn.Conv2d(in_channels=128, out_channels=256, kernel_size=(3, 3), stride=1, padding=1)
+#         self.bn2_1 = torch.nn.BatchNorm2d(256)
+#         # Output: 6*6*256
+#         self.down2_2 = torch.nn.Conv2d(in_channels=256, out_channels=256, kernel_size=(3, 3), stride=1, padding=1)
+#         self.bn2_2 = torch.nn.BatchNorm2d(256)
+#         # Output: 6*6*256
+#         self.pool2 = torch.nn.MaxPool2d(kernel_size=2, stride=2)
+#         # Output: 3*3*256
+        
+#         # -----Bottleneck----- #
+#         self.bottleneck1 = torch.nn.Conv2d(in_channels=256, out_channels=512, kernel_size=(3, 3), stride=1, padding=1)
+#         self.bn_bottle1 = torch.nn.BatchNorm2d(512)
+#         # Output: 3*3*512
+        
+#         self.bottleneck2 = torch.nn.Conv2d(in_channels=512, out_channels=512, kernel_size=(3, 3), stride=1, padding=1)
+#         self.bn_bottle2 = torch.nn.BatchNorm2d(512)
+#         # Output: 3*3*512
+        
+#         self.bottleneck3 = torch.nn.Conv2d(in_channels=512, out_channels=256, kernel_size=(3, 3), stride=1, padding=1)
+#         self.bn_bottle3 = torch.nn.BatchNorm2d(256)
+#         # Output: 3*3*256
+        
+#         # -----Upsampling----- #
+#         self.up2_1 = torch.nn.ConvTranspose2d(in_channels=256, out_channels=256, kernel_size=(3, 3), stride=2, padding=1, output_padding=1)
+#         self.bn_up2_1 = torch.nn.BatchNorm2d(256)
+#         # Output: 6*6*256
+        
+#         # Input: the output of down2_2 concatenate the output of up2_1
+#         self.up2_2 = torch.nn.Conv2d(in_channels=(256 + 256), out_channels=256, kernel_size=(3, 3), stride=1, padding=1)
+#         self.bn_up2_2 = torch.nn.BatchNorm2d(256)
+#         # Output: 6*6*256
+        
+#         self.up2_3 = torch.nn.Conv2d(in_channels=256, out_channels=128, kernel_size=(3, 3), stride=1, padding=1)
+#         self.bn_up2_3 = torch.nn.BatchNorm2d(128)
+#         # Output: 6*6*128
+        
+#         self.up1_1 = torch.nn.ConvTranspose2d(in_channels=128, out_channels=128, kernel_size=(3, 3), stride=2, padding=1, output_padding=1)
+#         self.bn_up1_1 = torch.nn.BatchNorm2d(128)
+#         # Output: 12*12*128
+        
+#         # Input: the output of down1_2 concatenate the output of up1_1
+#         self.up1_2 = torch.nn.Conv2d(in_channels=(128 + 128), out_channels=128, kernel_size=(3, 3), stride=1, padding=1)
+#         self.bn_up1_2 = torch.nn.BatchNorm2d(128)
+#         # Output: 12*12*128
+        
+#         self.up1_3 = torch.nn.Conv2d(in_channels=128, out_channels=64, kernel_size=(3, 3), stride=1, padding=1)
+#         self.bn_up1_3 = torch.nn.BatchNorm2d(64)
+#         # Output: 12*12*64
+        
+#         self.output = torch.nn.Conv2d(in_channels=64, out_channels=64, kernel_size=(3, 3), stride=1, padding=1)
+#         # Output: 12*12*64
+        
+#         # Residual connection
+#         self.res_conv = torch.nn.Conv2d(in_channels=64, out_channels=64, kernel_size=(1, 1), stride=1, padding=0)
+    
+#     def forward(self, x):
+#         is_batch = x.ndim == 4
+#         if not is_batch:
+#             x = x.unsqueeze(0) # (batch_size(1), channels, w, h)
+            
+#         input_x = x  # Save input for residual connection
+        
+#         # -----Downsampling----- #
+#         x = self.down1_1(x)
+#         x = self.bn1_1(x)
+#         x = torch.nn.functional.leaky_relu(x, 0.2)
+        
+#         x = self.down1_2(x)
+#         x = self.bn1_2(x)
+#         x = torch.nn.functional.leaky_relu(x, 0.2)
+#         x1_2 = x  # Skip connection 1
+        
+#         x = self.pool1(x)
+        
+#         x = self.down2_1(x)
+#         x = self.bn2_1(x)
+#         x = torch.nn.functional.leaky_relu(x, 0.2)
+        
+#         x = self.down2_2(x)
+#         x = self.bn2_2(x)
+#         x = torch.nn.functional.leaky_relu(x, 0.2)
+#         x2_2 = x  # Skip connection 2
+        
+#         x = self.pool2(x)
+        
+#         # -----Bottleneck----- #
+#         x = self.bottleneck1(x)
+#         x = self.bn_bottle1(x)
+#         x = torch.nn.functional.leaky_relu(x, 0.2)
+        
+#         x = self.bottleneck2(x)
+#         x = self.bn_bottle2(x)
+#         x = torch.nn.functional.leaky_relu(x, 0.2)
+        
+#         x = self.bottleneck3(x)
+#         x = self.bn_bottle3(x)
+#         x = torch.nn.functional.leaky_relu(x, 0.2)
+        
+#         # -----Upsampling----- #
+#         x = self.up2_1(x)
+#         x = self.bn_up2_1(x)
+#         x = torch.nn.functional.leaky_relu(x, 0.2)
+        
+#         concat_dim = 1
+#         if x.ndim == 3:  # Only process one latent image
+#             concat_dim = 0
+#         elif x.ndim == 4:  # Batch processing
+#             concat_dim = 1
+            
+#         x = torch.cat((x2_2, x), dim=concat_dim)  # Skip connection
+#         x = self.up2_2(x)
+#         x = self.bn_up2_2(x)
+#         x = torch.nn.functional.leaky_relu(x, 0.2)
+        
+#         x = self.up2_3(x)
+#         x = self.bn_up2_3(x)
+#         x = torch.nn.functional.leaky_relu(x, 0.2)
+        
+#         x = self.up1_1(x)
+#         x = self.bn_up1_1(x)
+#         x = torch.nn.functional.leaky_relu(x, 0.2)
+        
+#         x = torch.cat((x1_2, x), dim=concat_dim)  # Skip connection
+#         x = self.up1_2(x)
+#         x = self.bn_up1_2(x)
+#         x = torch.nn.functional.leaky_relu(x, 0.2)
+        
+#         x = self.up1_3(x)
+#         x = self.bn_up1_3(x)
+#         x = torch.nn.functional.leaky_relu(x, 0.2)
+        
+#         x = self.output(x)
+        
+#         # Add residual connection to help preserve color information
+#         res = self.res_conv(input_x)
+#         x = x + res
+        
+#         if not is_batch:
+#             x = x.squeeze(0)
+
+#         return x
         
 # For loading dataset, training model, testing model...
 class UNetDenoiserTrainer(object):
@@ -423,10 +423,9 @@ class UNetDenoiserTrainer(object):
 
 
             
-            sample_count = 6
+            sample_count = 10
             indices = random.sample(range(len(self.training_set)), sample_count)
             image_samples = [self.training_set[i][0].to(self.device) for i in indices]
-            torchvision.utils.save_image(image_samples, os.path.join(self.saved_images_path, f"image_samples.jpg"), nrow = 1)
             # image_samples = [ # TODO: set to more/all images and check, because 6 can work if noise is 0.05*(i+1)
             #                   self.training_set[0][0].to(self.device),
             #                   self.training_set[100][0].to(self.device),
@@ -435,6 +434,7 @@ class UNetDenoiserTrainer(object):
             #                   self.training_set[400][0].to(self.device),
             #                   self.training_set[600][0].to(self.device)
             #                   ]
+            torchvision.utils.save_image(image_samples, os.path.join(self.saved_images_path, f"image_samples.jpg"), nrow = 10)
         
             for epoch in range(1, epochs + 1):
                 # Switch to training mode, activate BatchNorm and Dropout
@@ -448,7 +448,7 @@ class UNetDenoiserTrainer(object):
                 # # Test training the first image only
                 inputs = []
                 labels = []
-                level_to_inputs = [[] for _ in range(self.denoise_steps)] # [[inputs_lv1, outputs_lv1], [inputs_lv2, outputs_lv2], ...]
+                level_to_inputs = [([], []) for _ in range(self.denoise_steps)] # [[inputs_lv1, outputs_lv1], [inputs_lv2, outputs_lv2], ...]
                 for image_sample in image_samples:
                     # Train only 1 image, 10 time steps (from very noisy to less noisy)
                     noisy_latent_images = []
@@ -463,13 +463,16 @@ class UNetDenoiserTrainer(object):
                         noisy_latent_images.append(noisy_latent_image)
 
                     for j in range(len(noisy_latent_images) - 1):
-                        input = noisy_latent_images[j + 1]
-                        label = noisy_latent_images[j]
+                        input = noisy_latent_images[j + 1].detach()
+                        label = noisy_latent_images[j].detach()
 
-                        # level_to_inputs
+                        level_to_inputs[j][0].append(input)
+                        level_to_inputs[j][1].append(label)
 
                         inputs.append(input)
                         labels.append(label)
+                
+
 
                 # Train only 1 image, fixed 1 input and 1 output
                 # batch_loss = 0
@@ -485,25 +488,25 @@ class UNetDenoiserTrainer(object):
                 # label = self.ae_encoder(label)
                 # labels.append(label)
 
-
-                batch_loss = 0
-                
-                inputs = torch.stack(inputs)
-                labels = torch.stack(labels)
-
-                outputs = self.denoiser_model(inputs)
-                loss_value = loss(outputs, labels)
-
-                # output = self.denoiser_model(input)
-                # loss_value = loss(output, label)
-
-                batch_loss += loss_value
-
-                optimizer.zero_grad()
-                batch_loss.backward() # Calculate gradient
-                optimizer.step() # # Update weights and biases
-
-                total_loss_training += batch_loss.item()
+                for (inputs, labels) in level_to_inputs:
+                    batch_loss = 0
+                    
+                    inputs = torch.stack(inputs)
+                    labels = torch.stack(labels)
+    
+                    outputs = self.denoiser_model(inputs)
+                    loss_value = loss(outputs, labels)
+    
+                    # output = self.denoiser_model(input)
+                    # loss_value = loss(output, label)
+    
+                    batch_loss += loss_value
+    
+                    optimizer.zero_grad()
+                    batch_loss.backward() # Calculate gradient
+                    optimizer.step() # # Update weights and biases
+    
+                    total_loss_training += batch_loss.item()
                 
 
                 '''
