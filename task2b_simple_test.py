@@ -149,7 +149,7 @@ class AugmentedDataset(torch.utils.data.Dataset):
 
 
 
-class UNetDenoiser(nn.Module):
+class UNetDenoiser(torch.nn.Module):
     def __init__(self):
         super(UNetDenoiser, self).__init__()
 
@@ -372,8 +372,8 @@ class UNetDenoiserTrainer(object):
             # Load previous model
             print(f"Loading weights from {self.saved_weights}")
             self.denoiser_model.load_state_dict(torch.load(self.saved_weights, weights_only = True, map_location = self.device))
-        # else:
-        if True:
+        else:
+        # if True:
             # Optimizer
             optimizer = torch.optim.Adam(self.denoiser_model.parameters(), lr = learning_rate, weight_decay=0)
 
@@ -545,12 +545,17 @@ class UNetDenoiserTrainer(object):
             # input_img_path = os.path.join(self.saved_images_path, f"task2b_test_input.jpg")
             # input = torchvision.transforms.ToTensor()(Image.open(input_img_path).convert('RGB'))
             # random_noise = input.to(self.device)
-            random_noise = torch.randn(3, self.imsize, self.imsize, device = self.device)# * 2.8
-            random_noise = torch.clamp(random_noise, 0, 1)
+            # random_noise = torch.randn(3, self.imsize, self.imsize, device = self.device) * 0.3 # * 2.8
+            # random_noise += 0.5
+            # random_noise = torch.clamp(random_noise, 0, 1)
+            # random_noise = (random_noise - random_noise.min()) / (random_noise.max() - random_noise.min())
             
             # random_noise = self.training_set[0][0].to(self.device)
             # # # random_noise = self.add_gaussian_noise_to_image(random_noise, std = 0.5)
             # random_noise = self.create_noisy_images_tensor(random_noise)[-1]
+            
+            base_image = torch.ones(3, self.imsize, self.imsize, device=self.device) * 0.5
+            random_noise = self.create_noisy_images_tensor(base_image)[-1]
             
             # saved_path = os.path.join(self.saved_images_path, f"train_image_10.jpg")
             # noisy_image = Image.open(saved_path)
@@ -670,7 +675,7 @@ if __name__ == "__main__":
     imsize = 96
     batch_size = 16
     data_augmentation = False
-    epochs = 500
+    epochs = 50
     learning_rate = 0.0001
     denoise_steps = 10 # How many steps to denoise from random noise to image
 
