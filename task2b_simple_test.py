@@ -372,7 +372,8 @@ class UNetDenoiserTrainer(object):
             # Load previous model
             print(f"Loading weights from {self.saved_weights}")
             self.denoiser_model.load_state_dict(torch.load(self.saved_weights, weights_only = True, map_location = self.device))
-        else:
+        # else:
+        if True:
             # Optimizer
             optimizer = torch.optim.Adam(self.denoiser_model.parameters(), lr = learning_rate, weight_decay=0)
 
@@ -408,7 +409,7 @@ class UNetDenoiserTrainer(object):
 
                 print(f"Epoch {epoch}/{epochs}")
 
-                
+                '''
                 # # Test training the first image only
                 inputs = []
                 labels = []
@@ -471,9 +472,9 @@ class UNetDenoiserTrainer(object):
                     optimizer.step() # # Update weights and biases
     
                     total_loss_training += batch_loss.item()
-                
-
                 '''
+
+                
                 batches_loop = tqdm.tqdm(enumerate(self.training_data), total = len(self.training_data), bar_format = '{n_fmt}/{total_fmt} [{bar}] - ETA: {remaining}{postfix}', ascii = ' >=')
 
                 for i, (x_batch, y_batch) in batches_loop:
@@ -520,7 +521,7 @@ class UNetDenoiserTrainer(object):
                     total_loss_training += batch_loss.item()
 
                     batches_loop.set_postfix_str(f"loss: {total_loss_training/(i + 1):.4f}")
-                '''
+                
 
 
                     
@@ -669,7 +670,7 @@ if __name__ == "__main__":
     imsize = 96
     batch_size = 16
     data_augmentation = False
-    epochs = 2000
+    epochs = 500
     learning_rate = 0.0001
     denoise_steps = 10 # How many steps to denoise from random noise to image
 
