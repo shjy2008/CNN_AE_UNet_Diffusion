@@ -24,6 +24,7 @@ def print_number_of_trainable_model_parameters(model):
             trainable_model_params += param.numel()
     print(f"trainable model parameters: {trainable_model_params}\nall model parameters: {all_model_params}\npercentage of trainable model parameters: {100 * trainable_model_params / all_model_params:.2f}%")
 
+# CNN Model
 class CNN(torch.nn.Module):
 
     def __init__(self, in_channels, n_classes, reg_dropout_rate = 0, reg_batch_norm = False):
@@ -201,7 +202,8 @@ class AugmentedDataset(torch.utils.data.Dataset):
 
     def __len__(self):
         return len(self.img_and_labels)
-    
+
+# Model trainer, for preparing dataset, loading model, training, and testing
 class ModelTrainer(object):
 
     def __init__(self, fine_grained = False, reg_dropout_rate = 0, reg_batch_norm = False, reg_wdecay_beta = 0):
@@ -229,12 +231,11 @@ class ModelTrainer(object):
         path_to_save_folder = os.path.join(path_to_this_scripts_folder, "saved")
         if not os.path.isdir(path_to_save_folder):
             os.mkdir(path_to_save_folder)
-        save_base_name = os.path.join(path_to_save_folder, "oxford_flowers")
         
         if self.fine_grained:
-            self.saved_weights = save_base_name + "_torch_cnn_fine.weights.h5"
+            self.saved_weights = os.path.join(path_to_save_folder, "CNN_fine.weights.h5")
         else:
-            self.saved_weights = save_base_name + "_torch_cnn_coarse.weights.h5"
+            self.saved_weights = os.path.join(path_to_save_folder, "CNN_coarse.weights.h5")
 
         # Device, gpu, mps or cpu
         if torch.cuda.is_available():

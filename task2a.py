@@ -11,7 +11,7 @@ from PIL import Image
 LOAD_FROM_FILE = True
 #################################################
 
-
+# Auto-encoder encoder part
 class AE_Encoder(torch.nn.Module):
 
     def __init__(self, in_channels = 3, imsize = 96):
@@ -40,6 +40,7 @@ class AE_Encoder(torch.nn.Module):
 
         return x
 
+# Auto-encoder decoder part
 class AE_Decoder(torch.nn.Module):
 
     def __init__(self, out_channels = 3, imsize = 96):
@@ -67,6 +68,7 @@ class AE_Decoder(torch.nn.Module):
         return x
 
 
+# Model trainer, for preparing dataset, loading model, training, and testing
 class AutoEncoderTrainer(object):
 
     def __init__(self, imsize = 96):
@@ -91,10 +93,9 @@ class AutoEncoderTrainer(object):
         path_to_save_folder = os.path.join(path_to_this_scripts_folder, "saved")
         if not os.path.isdir(path_to_save_folder):
             os.mkdir(path_to_save_folder)
-        save_base_name = os.path.join(path_to_save_folder, "oxford_flowers")
-        self.saved_weights_encoder = save_base_name + "_torch_autoencoder_encoder.weights.h5"
-        self.saved_weights_decoder = save_base_name + "_torch_autoencoder_decoder.weights.h5"
-        self.saved_images_path = os.path.join(path_to_save_folder, "task2_images")
+        self.saved_weights_encoder = os.path.join(path_to_save_folder, "AE_encoder.weights.h5")
+        self.saved_weights_decoder = os.path.join(path_to_save_folder, "AE_decoder.weights.h5")
+        self.saved_images_path = os.path.join(path_to_save_folder, "task2a_images")
 
         # Device, gpu, mps or cpu
         if torch.cuda.is_available():
@@ -265,6 +266,7 @@ class AutoEncoderTrainer(object):
 
 
         # Calculate error(per pixel) mean and standard deviation
+        print(f"index   label   mean    std")
         for i in range(test_count):
             error = reconstructed_images[i] - all_original_images[i]
             error = error.abs()
@@ -272,7 +274,7 @@ class AutoEncoderTrainer(object):
             std_error = error.std()
 
             # print(f"index: {indices[i]}, label: {labels[i]}, mean error: {mean_error:.4f}, std error: {std_error:.4f}")
-            print(f"{indices[i]}    {labels[i]} {mean_error:.4f}    {std_error:.4f}")
+            print(f"{indices[i]}        {labels[i]}     {mean_error:.4f}    {std_error:.4f}")
 
         original_stack = torch.stack(all_original_images)
         reconstructed_stack = torch.stack(all_reconstructed_images)
