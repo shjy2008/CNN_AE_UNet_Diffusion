@@ -5,6 +5,15 @@ from load_oxford_flowers102 import load_oxford_flowers102
 import torch
 import tqdm
 import os
+from sklearn.metrics import confusion_matrix
+import matplotlib.pyplot as plt
+import seaborn
+
+############# Please change this ################
+LOAD_FROM_FILE = True
+FINE_GRAINED = False
+#################################################
+
 
 def print_number_of_trainable_model_parameters(model):
     trainable_model_params = 0
@@ -31,9 +40,9 @@ class CNN(torch.nn.Module):
         out_channels_5 = 256
         
         # in_channels: 3 (RGB)
-        # input: 32 * 32 * 3 (width * height * in_channels)
+        # input: 96 * 96 * 3 (width * height * in_channels)
         self.conv1 = torch.nn.Conv2d(in_channels = in_channels, out_channels = out_channels_1, kernel_size = 3, stride = 1, padding = 1)
-        # output: 32 * 32 * out_channels_1 neurons
+        # output: 96 * 96 * out_channels_1 neurons
 
         if self.reg_batch_norm:
             self.bn1 = torch.nn.BatchNorm2d(out_channels_1)
@@ -42,10 +51,10 @@ class CNN(torch.nn.Module):
         #     self.dropout1 = torch.nn.Dropout(self.reg_dropout_rate)
         
         self.pool1 = torch.nn.MaxPool2d(kernel_size = 2, stride = 2)
-        # output: 16 * 16 * out_channels_1 neurons
+        # output: 48 * 48 * out_channels_1 neurons
 
         self.conv2 = torch.nn.Conv2d(in_channels = out_channels_1, out_channels = out_channels_2, kernel_size = 3, stride = 1, padding = 1)
-        # output: 16 * 16 * out_channels_2 neurons
+        # output: 48 * 48 * out_channels_2 neurons
         
         if self.reg_batch_norm:
             self.bn2 = torch.nn.BatchNorm2d(out_channels_2)
@@ -54,10 +63,10 @@ class CNN(torch.nn.Module):
         #     self.dropout2 = torch.nn.Dropout(self.reg_dropout_rate)
 
         self.pool2 = torch.nn.MaxPool2d(kernel_size = 2, stride = 2)
-        # output: 8 * 8 * out_channels_2 neurons
+        # output: 24 * 24 * out_channels_2 neurons
 
         self.conv3 = torch.nn.Conv2d(in_channels = out_channels_2, out_channels = out_channels_3, kernel_size = 3, stride = 1, padding = 1)
-        # output: 8 * 8 * out_channels_3 neurons
+        # output: 24 * 24 * out_channels_3 neurons
         
         if self.reg_batch_norm:
             self.bn3 = torch.nn.BatchNorm2d(out_channels_3)
@@ -66,10 +75,10 @@ class CNN(torch.nn.Module):
         #     self.dropout3 = torch.nn.Dropout(self.reg_dropout_rate)
 
         self.pool3 = torch.nn.MaxPool2d(kernel_size = 2, stride = 2)
-        # output: 4 * 4 * out_channels_3 neurons
+        # output: 12 * 12 * out_channels_3 neurons
 
         self.conv4 = torch.nn.Conv2d(in_channels = out_channels_3, out_channels = out_channels_4, kernel_size = 3, stride = 1, padding = 1)
-        # output: 8 * 8 * out_channels_4 neurons
+        # output: 12 * 12 * out_channels_4 neurons
         
         if self.reg_batch_norm:
             self.bn4 = torch.nn.BatchNorm2d(out_channels_4)
@@ -78,21 +87,21 @@ class CNN(torch.nn.Module):
         #     self.dropout4 = torch.nn.Dropout(self.reg_dropout_rate)
 
         self.pool4 = torch.nn.MaxPool2d(kernel_size = 2, stride = 2)
-        # output: 4 * 4 * out_channels_3 neurons
+        # output: 6 * 6 * out_channels_3 neurons
 
         self.conv5 = torch.nn.Conv2d(in_channels = out_channels_4, out_channels = out_channels_5, kernel_size = 3, stride = 1, padding = 1)
-        # output: 8 * 8 * out_channels_5 neurons
+        # output: 6 * 6 * out_channels_5 neurons
         
         if self.reg_batch_norm:
             self.bn5 = torch.nn.BatchNorm2d(out_channels_5)
 
         self.pool5 = torch.nn.MaxPool2d(kernel_size = 2, stride = 2)
-        # output: 4 * 4 * out_channels_3 neurons
+        # output: 3 * 3 * out_channels_5 neurons
 
         self.flatten = torch.nn.Flatten() # A multi-dimensional feature map -> a 1D vector
-        # output: 4 * 4 * out_channels_3 = 4096 neurons
+        # output: 3 * 3 * out_channels_5(256) = 2304 neurons
 
-        neurons_after_conv_layers = 2304 #8192 # 512 # 4608 # 4096 # 36864
+        neurons_after_conv_layers = 2304
         self.fc1 = torch.nn.Linear(neurons_after_conv_layers, 128)
         # output: 128 neurons
 
@@ -195,8 +204,10 @@ class AugmentedDataset(torch.utils.data.Dataset):
     
 class ModelTrainer(object):
 
-    def __init__(self, reg_dropout_rate = 0, reg_batch_norm = False, reg_wdecay_beta = 0):
+    def __init__(self, fine_grained = False, reg_dropout_rate = 0, reg_batch_norm = False, reg_wdecay_beta = 0):
         self.cnn = None
+
+        self.fine_grained = fine_grained
 
         # Regularisation parameters
         self.reg_dropout_rate = reg_dropout_rate
@@ -219,7 +230,11 @@ class ModelTrainer(object):
         if not os.path.isdir(path_to_save_folder):
             os.mkdir(path_to_save_folder)
         save_base_name = os.path.join(path_to_save_folder, "oxford_flowers")
-        self.saved_weights = save_base_name + "_torch_cnn_net.weights.h5"
+        
+        if self.fine_grained:
+            self.saved_weights = save_base_name + "_torch_cnn_fine.weights.h5"
+        else:
+            self.saved_weights = save_base_name + "_torch_cnn_coarse.weights.h5"
 
         # Device, gpu, mps or cpu
         if torch.cuda.is_available():
@@ -230,12 +245,12 @@ class ModelTrainer(object):
             self.device = torch.device("cpu")
         print(f"device: {self.device}")
 
-    def load_dataset(self, fine_grained = False, imsize = 96, batch_size = 16, data_augmentation = True):
-        self.training_set, self.validation_set, self.test_set, self.class_names = load_oxford_flowers102(imsize = imsize, fine = fine_grained)
+    def load_dataset(self, imsize = 96, batch_size = 16, data_augmentation = True):
+        self.training_set, self.validation_set, self.test_set, self.class_names = load_oxford_flowers102(imsize = imsize, fine = self.fine_grained)
 
         # Data augmentation
         if data_augmentation:
-            print("Start preparing data...")
+            print("Data augmentation. Start preparing data... (Wait about 1 minute...)")
             transform_func = torchvision.transforms.Compose([
                 torchvision.transforms.RandomHorizontalFlip(), # Horizontal flip
                 torchvision.transforms.RandomRotation(degrees = 25),
@@ -260,6 +275,7 @@ class ModelTrainer(object):
                 else:
                     label_to_imgs[label] = [x]
             
+            # Training data:
             # coarse: {8: 291, 2: 164, 3: 798, 7: 103, 4: 368, 1: 49, 9: 97, 5: 201, 6: 136, 0: 115}
             # fine-grained: {76: 231, 45: 176, 22: 71, 85: 38, 74: 100, 37: 36, 49: 72, 9: 25, 4: 45, 91: 46,
             #  28: 58, 79: 85, 51: 65, 88: 164, 67: 34, 84: 43, 36: 88, 55: 89, 94: 108, 42: 110, 80: 146, 57: 94,
@@ -308,7 +324,6 @@ class ModelTrainer(object):
             print(f"Loading weights from {self.saved_weights}")
             cnn.load_state_dict(torch.load(self.saved_weights, weights_only = True, map_location = self.device))
         else:
-        # if True:
             # Optimizer
             if self.reg_wdecay_beta:
                 weight_decay_params = []
@@ -329,7 +344,7 @@ class ModelTrainer(object):
 
             loss = torch.nn.CrossEntropyLoss()
 
-            history = {"loss": [], "accuracy": [], "validation_loss": [], "validation_accuracy": []}
+            best_validation_accuracy = 0.0
 
             for epoch in range(1, epochs + 1):
                 # Switch to train mode, activate BatchNorm and Dropout
@@ -397,14 +412,19 @@ class ModelTrainer(object):
                 print(f"loss: {average_loss_in_epoch_training:.4f} - accuracy: {accuracy_in_epoch_training:.4f}")
                 print(f"validation loss: {average_loss_in_epoch_validation:.4f} - validation accuracy: {accuracy_in_epoch_validation:.4f}")
 
-            # Save model to file
-            print(f"Saving model to {self.saved_weights}...")
-            torch.save(cnn.state_dict(), self.saved_weights)
+                if accuracy_in_epoch_validation > best_validation_accuracy:
+                    best_validation_accuracy = accuracy_in_epoch_validation
+
+                    # Save model to file
+                    print(f"Saving model to {self.saved_weights}...")
+                    torch.save(cnn.state_dict(), self.saved_weights)
 
     def test(self):
         self.cnn.eval()
-        accuracy_test = 0
 
+        accuracy_test = 0
+        all_preds = []
+        all_labels = []
         with torch.no_grad(): # In evaluation mode, don't calculate gradient, save computational cost
             for x_batch, y_batch in self.test_data:
                 # Must move the data to the device, because the model is on the device
@@ -415,18 +435,32 @@ class ModelTrainer(object):
                 y_pred = torch.argmax(y_pred, dim=1)
                 accuracy_test += torch.sum(y_pred == y_batch).item()
 
+                all_preds.extend(y_pred.cpu().numpy())
+                all_labels.extend(y_batch.cpu().numpy())
+
         accuracy_test /= len(self.test_set)
         print(f'Test accuracy : {accuracy_test:.2f}')
+
+        # Show confusion matrix
+        cm = confusion_matrix(all_labels, all_preds)
+        plt.figure(figsize=(12, 10))
+        seaborn.heatmap(cm, annot = True, fmt = "d", cmap = "Blues", annot_kws={"size": 5 if self.fine_grained else 10})
+        plt.xlabel("Predicted")
+        plt.ylabel("Label")
+        plt.title("Confusion Matrix")
+        plt.show()
+
 
 
 if __name__ == "__main__":
 
-    load_from_file = False
+    load_from_file = LOAD_FROM_FILE
+    fine_grained = FINE_GRAINED
+
     reg_dropout_rate = 0 # 0.3
     reg_batch_norm = True # False
-    reg_wdecay_beta = 0.001
-    fine_grained = True
-    imsize = 96 # 32
+    reg_wdecay_beta = 0.001 # 0.001
+    imsize = 96
     batch_size = 128 # 16
     data_augmentation = True
     epochs = 50
@@ -439,10 +473,10 @@ if __name__ == "__main__":
     def print_hyper_params():
         print("------------------------------------")
         print(f"load_from_file:{load_from_file}")
+        print(f"fine_grained:{fine_grained}")
         print(f"reg_dropout_rate:{reg_dropout_rate}")
         print(f"reg_batch_norm:{reg_batch_norm}")
         print(f"reg_wdecay_beta:{reg_wdecay_beta}")
-        print(f"fine_grained:{fine_grained}")
         print(f"imsize:{imsize}")
         print(f"batch_size:{batch_size}")
         print(f"data_augmentation:{data_augmentation}")
@@ -452,14 +486,15 @@ if __name__ == "__main__":
     
     print_hyper_params()
 
-    trainer = ModelTrainer(reg_dropout_rate = reg_dropout_rate,
+    trainer = ModelTrainer(fine_grained = fine_grained,
+                           reg_dropout_rate = reg_dropout_rate,
                            reg_batch_norm = reg_batch_norm,
                            reg_wdecay_beta = reg_wdecay_beta)
     
-    trainer.load_dataset(fine_grained = fine_grained,
-                         imsize = imsize,
+    trainer.load_dataset(imsize = imsize,
                          batch_size = batch_size,
-                         data_augmentation = data_augmentation)
+                         data_augmentation = data_augmentation and load_from_file == False # Only training need data augmentation
+                         )
     
     trainer.train(load_from_file = load_from_file,
                   epochs = epochs,

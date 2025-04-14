@@ -3,6 +3,14 @@ from load_oxford_flowers102 import load_oxford_flowers102
 import os
 import tqdm
 import torchvision
+import matplotlib.pyplot as plt
+import random
+from PIL import Image
+
+############# Please change this ################
+LOAD_FROM_FILE = True
+#################################################
+
 
 class AE_Encoder(torch.nn.Module):
 
@@ -215,27 +223,68 @@ class AutoEncoderTrainer(object):
 
     # Save recontructed images
     def save_reconstructed_images(self):
-        save_image_count = 5
+        test_count = 10
 
-        for i in range(2):
-            if i == 0:
-                dataset = self.training_set
-            elif i == 1:
-                dataset = self.test_set
-            
-            images_sample = [dataset[i][0] for i in range(save_image_count)]
-            images_sample = torch.stack(images_sample)
-            images_sample = images_sample.to(self.device)
+        dataset = self.test_set
 
-            latent_data = self.ae_encoder(images_sample)
-            reconstructed_images = self.ae_decoder(latent_data)
+        indices = []
+        labels = []
+        for i, (image, label) in enumerate(dataset):
+            if label not in labels:
+                labels.append(label)
+                indices.append(i)
+                if len(indices) >= 10:
+                    break
+        
+        images_sample = [dataset[i][0] for i in indices]
+        images_sample = torch.stack(images_sample)
+        images_sample = images_sample.to(self.device)
+        latent_data = self.ae_encoder(images_sample)
+        reconstructed_images = self.ae_decoder(latent_data)
 
-            images_sample.to("cpu").detach()
-            reconstructed_images.to("cpu").detach()
+        images_sample.to("cpu").detach()
+        reconstructed_images.to("cpu").detach()
 
-            os.makedirs(self.saved_images_path, exist_ok=True)
-            torchvision.utils.save_image(images_sample, os.path.join(self.saved_images_path, f"original_{i + 1}.jpg"), nrow = save_image_count)
-            torchvision.utils.save_image(reconstructed_images, os.path.join(self.saved_images_path, f"reconstructed_{i + 1}.jpg"), nrow = save_image_count)
+        os.makedirs(self.saved_images_path, exist_ok=True)
+
+        all_original_images = list(images_sample)
+        all_reconstructed_images = list(reconstructed_images)
+        all_images = all_original_images + all_reconstructed_images
+
+        saved_path = os.path.join(self.saved_images_path, f"autoencoder_images.jpg")
+        torchvision.utils.save_image(all_images, saved_path, nrow = test_count)
+        
+        
+        # Show the image
+        img = Image.open(saved_path)
+        plt.figure(figsize=(12, 6))
+        plt.imshow(img)
+        plt.title("Top: Original | Bottom: Reconstructed")
+        plt.axis('off')  # Hide axes for better visualization
+        plt.show()
+
+
+        # Calculate error(per pixel) mean and standard deviation
+        for i in range(test_count):
+            error = reconstructed_images[i] - all_original_images[i]
+            error = error.abs()
+            mean_error = error.mean()
+            std_error = error.std()
+
+            # print(f"index: {indices[i]}, label: {labels[i]}, mean error: {mean_error:.4f}, std error: {std_error:.4f}")
+            print(f"{indices[i]}    {labels[i]} {mean_error:.4f}    {std_error:.4f}")
+
+        original_stack = torch.stack(all_original_images)
+        reconstructed_stack = torch.stack(all_reconstructed_images)
+
+        pixel_error = reconstructed_stack - original_stack
+        pixel_error = pixel_error.abs()
+
+        mean = pixel_error.mean().item()
+        std = pixel_error.std().item()
+
+        print(f"Error mean of all 10 images: {mean:.4f}")
+        print(f"Error standard deviation of all 10 images: {std:.4f}")
 
 
 
@@ -243,7 +292,8 @@ class AutoEncoderTrainer(object):
 
 if __name__ == "__main__":
 
-    load_from_file = False
+    load_from_file = LOAD_FROM_FILE
+
     imsize = 96
     batch_size = 16
     epochs = 150
