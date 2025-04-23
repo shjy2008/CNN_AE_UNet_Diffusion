@@ -1,0 +1,74 @@
+## Marks
+
+| Task | Mark | Out Of |
+| ------- | ---: | :--- |
+| Classification    | 5 | / 5 |
+| Stable Diffusion  | 9 | / 9 |
+| Report            | 6 | / 6 |
+| Total             | 20 | / 20 |
+    
+## Comments
+
+### Models
+
+Your models load from the saved weights and run fine.
+
+Your models appear to train correctly and the loss decreases in the first few epochs. Retraining from scratch gives similar results to those reported. Good work!
+
+Your models are fairly typical for the task at hand. The architectures are reasonable and seem to be of sensible sizes considering the task at hand.
+
+Good use of regularization methods such as Dropout and BatchNorm layers. These should improve model generalization / prevent overfitting. I would like to see justifications for why you have employed these techniques in your report --- demonstrating your understanding of why, practically, we often need these kinds of layers is a good way to convince me you understand the content!
+
+### Task 01
+
+Interesting approach to define the number of channels as variables in your CNN class. Did you consider passing the number of channels as a parameter to the class instead?
+
+Nice touch to have a class specifically for model training! This kind of encapsulation is good engineering practice, although probably overkill for this assignment!
+
+Excellent use of data augmentation to improve your model's generalization. I look forward to your discussion of this in your report!
+
+You have the following block of commented data in your code:
+```
+# Training data:
+# coarse: {8: 291, 2: 164, 3: 798, 7: 103, 4: 368, 1: 49, 9: 97, 5: 201, 6: 136, 0: 115}
+# fine-grained: {76: 231, 45: 176, 22: 71, 85: 38, 74: 100, 37: 36, 49: 72, 9: 25, 4: 45, 91: 46,
+#  28: 58, 79: 85, 51: 65, 88: 164, 67: 34, 84: 43, 36: 88, 55: 89, 94: 108, 42: 110, 80: 146, 57: 94,
+#  77: 117, 89: 62, 87: 134, 46: 47, 73: 151, 93: 142, 13: 28, 97: 62, 50: 238, 71: 76, 92: 26, 40: 107,
+#  52: 73, 64: 82, 53: 41, 27: 46, 72: 174, 18: 29, 100: 38, 7: 65, 35: 55, 2: 20, 43: 73, 31: 25, 59: 89,
+#  60: 30, 63: 32, 54: 51, 29: 65, 83: 66, 11: 67, 10: 67, 96: 46, 17: 62, 61: 35, 82: 111, 81: 92, 14: 29,
+#  75: 87, 21: 39, 86: 43, 26: 20, 47: 51, 66: 22, 90: 56, 58: 47, 16: 65, 15: 21, 62: 34, 98: 43, 19: 36,
+#  32: 26, 78: 21, 68: 34, 69: 42, 1: 40, 39: 47, 5: 25, 8: 26, 41: 39, 20: 20, 65: 41, 99: 29, 70: 58, 95: 71,
+#  48: 29, 30: 32, 56: 47, 25: 21, 23: 22, 12: 29, 24: 21, 33: 20, 3: 36, 44: 20, 34: 23, 0: 20, 38: 21, 101: 28, 6: 20}
+
+```
+are these the class counts? If so, why are they present in your code? I think they could be excluded for better code clarity and cleanliness!
+
+On that topic, you have clearly investigated the class imbalance, but have you done anything with this information? Have you rebalanced your model weightings based on this information? Class weights may help get your accuracy slightly higher, and could explain some of your overfitting.
+    Ah, I see! You have augmented the classes to have the same number of images. Good work! Great to see.
+
+Good results from your model otherwise. Your report is also very clear in identifying overfitting as a problem, from which you immediately discuss generalization and techniques to prevent this. I am very pleased to see this, and it has demonstrated your understanding of the machine learning concepts.
+
+Table 5 is, so far, my favorite object I have seen while marking this entire assignment. This is perfect! Showing the iteration of your approach including the various accuracies is exactly what I want to see!
+
+### Task 02
+
+A simple, symmetrical "hourglass" / encoder-decoder autoencoder works well for this task. Did you experiment with the exact hyperparameters in this network? Perhaps decoupling the size of the filters in the encoder and the size of the filters in the decoder could give better results? Or maybe employing a different number of filters in each half? These could be interesting to investigate; always challenge those assumptions!
+
+The results of your autoencoder are good. The decoded images should be, ideally, identical to the original images. Of course, in practice, that is very difficult to obtain in a non-trivial way. Instead, we find the decoded images are *nearly* the same as the original images. This is the case for your models, in which the decoded images are similar with only some loss of details or slight blurring, typical of encoder-decoder networks trained on per-pixel accuracy.
+    Have you considered the implications of your autoencoder training method in the broader context of the task? You have only trained the autoencoder on the raw images (effectively noise step zero) which means the latent space has been conditioned only on the denoised images. Would it be reasonable to train on images with a higher noise step, hence conditioning the latent space to also encode information about the noisy data? This might help your diffusion model generate more meaningful images. Furthermore, training only on fully denoised images means your decoder network is implicitly learning to do some denoising itself --- the target image is always clean, so noise must be antagonistic to its goals. This could be masking some of the results of the diffusion model, although to what extent it is difficult to say.
+
+Your diffusion model does indeed operate over the latent space of the autoencoder from above, which is good. Several students have confused themselves and trained a "standard" diffusion model that does not employ the decoder at all! Nice work.
+
+Your noise schedule is also reasonable, but did you play around with this? It is a fairly vital part of the diffusion process, so selection of the noise schedule should probably be investigated with some scrutiny! Showing evidence of your investigations in your report (or simply discussing it) may be useful. For example, more noise steps, or a non-linear noise schedule, may yield interesting results.
+
+Your diffusion results (after 1000 epochs) are some of the best I have seen! This is very, very impressive, and far above what I would have expected from this assignment.
+
+### Report
+
+Excellent visualization of your model trainings. Your summary of the model performance is appreciated.
+
+The given confusion matrix for part one is good to see. The analysis of that matrix is even better.
+
+Excellent investigation into the edge cases of your models, too. Nice analysis of the RGB pixel distribution and what may be the cause of this. Really nice work!!
+
+Overall, your report is technically excellent, and a delight to read. Great work! I have nothing additional to add, you have hit every point and made it clear what you have done at every point. You have demonstrated understanding and justified your actions throughout. I am impressed! My only regret is that I have only 20 points to give you!
