@@ -42,8 +42,8 @@ Implemented three models on the Oxford Flowers dataset:
 **Results:**  
 - Coarse: 81% test accuracy  
 - Fine: 72% test accuracy  
-<img width="1482" height="1352" alt="image" src="https://github.com/user-attachments/assets/dc498abf-53c8-49fd-8e61-4093a5f2aa65" />
-<img width="1470" height="1324" alt="image" src="https://github.com/user-attachments/assets/c50c8326-6bdb-4dd3-8556-acd8e5da3dc5" />
+<img width="741" height="676" alt="image" src="https://github.com/user-attachments/assets/dc498abf-53c8-49fd-8e61-4093a5f2aa65" />
+<img width="735" height="662" alt="image" src="https://github.com/user-attachments/assets/c50c8326-6bdb-4dd3-8556-acd8e5da3dc5" />
 
 
 ---
@@ -74,7 +74,7 @@ Implemented three models on the Oxford Flowers dataset:
 - Learning rate: 0.0001
 
 **Results:**  
-<img width="1466" height="336" alt="image" src="https://github.com/user-attachments/assets/26e2f118-58f2-42ac-b1e9-46de83306968" />
+<img width="733" height="168" alt="image" src="https://github.com/user-attachments/assets/26e2f118-58f2-42ac-b1e9-46de83306968" />
 
 
 ---
@@ -110,17 +110,17 @@ Implemented three models on the Oxford Flowers dataset:
 - Batch size: 16  
 - Epochs: 1000  
 - Input noise levels: 10
-<img width="1506" height="246" alt="image" src="https://github.com/user-attachments/assets/18d3ffff-9408-4f76-929d-55b87f20cacb" />
+<img width="753" height="123" alt="image" src="https://github.com/user-attachments/assets/18d3ffff-9408-4f76-929d-55b87f20cacb" />
 
 
 **Results:**  
 - Generates 96×96 images from random noise over 10 de-noising steps  
 - Handles diverse flower types with correct color distributions  
-<img width="1498" height="1366" alt="image" src="https://github.com/user-attachments/assets/b6864545-fb45-4573-8f28-f9bf77b12272" />
+<img width="749" height="683" alt="image" src="https://github.com/user-attachments/assets/b6864545-fb45-4573-8f28-f9bf77b12272" />
 
 
 ---
 
 ## Conclusion
 - Developed CNN for classification, auto-encoder for reconstruction, UNet for image generation.  
-- Key lessons: hyper-parameter tuning, regularization, and iterative debugging lead to better results.
+- Hyper-parameter tuning, regularization, and iterative debugging lead to better results.
