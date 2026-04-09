@@ -6,7 +6,7 @@ on:
 
 env:
   AWS_REGION: ap-southeast-2
-  ECR_REPOSITORY: cv-api
+  ECR_REPOSITORY: portfolio/cv-api
   AWS_ROLE_ARN: ${{ secrets.AWS_ROLE_ARN }} # Recommended to use a secret
 
 permissions:
