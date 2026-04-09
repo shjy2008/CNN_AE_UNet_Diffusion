@@ -1,0 +1,37 @@
+# Training data (large, not needed in container)
+data/
+data_CIFAR10/
+oxford_flowers102_train/
+
+# Saved outputs/checkpoints (we COPY specific weights explicitly in Dockerfile)
+saved/latent_128_6_6/
+saved/task2*/
+saved/*.h5
+# un-ignore the specific weights we need
+!saved/CNN_fine.weights.h5
+!saved/CNN_coarse.weights.h5
+
+# Images and report outputs
+*.png
+*.jpg
+*.jpeg
+report/
+
+# Other scripts not needed in the API container
+task2*.py
+task1_cnn.py
+test.py
+show_*.py
+run*.sh
+*.sh
+__pycache__/
+*.pyc
+*.zip
+*.docx
+*.xlsx
+*.pdf
+*.txt
+!requirements.txt
+.DS_Store
+.git/
+.gitignore

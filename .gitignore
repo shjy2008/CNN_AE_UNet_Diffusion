@@ -1,0 +1,15 @@
+# Training source data
+data/
+data_CIFAR10/
+oxford_flowers102_train/
+
+# Common generated output directories (mostly images/checkpoints)
+saved/
+report/train_*
+
+# macOS
+.DS_Store
+
+# Python
+__pycache__/
+*.py[cod]
