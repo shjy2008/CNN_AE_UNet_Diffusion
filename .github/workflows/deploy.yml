@@ -8,7 +8,7 @@ env:
   AWS_REGION: ap-southeast-2
   ECR_REPOSITORY: portfolio/cv-api
   AWS_ROLE_ARN: ${{ secrets.AWS_ROLE_ARN }}
-  ECS_CLUSTER: Portfolio
+  ECS_CLUSTER: portfolio
   ECS_SERVICE: cv-api
 
 permissions:
