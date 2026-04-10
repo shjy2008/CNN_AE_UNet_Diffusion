@@ -3,6 +3,7 @@ import io
 import torch
 import torchvision.transforms as transforms
 from fastapi import FastAPI, UploadFile, File, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
 from PIL import Image
 
 # Import model architecture and configurations from task1
@@ -14,6 +15,19 @@ from load_oxford_flowers102 import flowers102_class_names, flowers102_group_name
 app = FastAPI(
     title="CNN Image Classifier API",
     description="Exposes the task1.py CNN PyTorch model to classify flower images."
+)
+
+# Add CORS Middleware to allow React app to talk to the API 
+# (don't need junyishen.com, because production React app in same domain/port, and use relative paths)
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=[
+        "http://localhost:4173", # For npm run preview
+        "http://localhost:5173", # For npm run dev
+    ],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 
 @app.get("/health")
@@ -33,7 +47,7 @@ else:
     class_names = list(flowers102_group_names.keys())
     weights_path = os.path.join("saved", "CNN_coarse.weights.h5")
 
-print ("class_names: ", class_names)
+# print ("class_names: ", class_names)
 
 # Hardcoded for the model trained in task1.py
 reg_dropout_rate = 0 

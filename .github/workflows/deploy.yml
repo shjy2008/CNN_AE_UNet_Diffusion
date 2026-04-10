@@ -7,7 +7,9 @@ on:
 env:
   AWS_REGION: ap-southeast-2
   ECR_REPOSITORY: portfolio/cv-api
-  AWS_ROLE_ARN: ${{ secrets.AWS_ROLE_ARN }} # Recommended to use a secret
+  AWS_ROLE_ARN: ${{ secrets.AWS_ROLE_ARN }}
+  ECS_CLUSTER: Portfolio
+  ECS_SERVICE: cv-api
 
 permissions:
   id-token: write # Required for OIDC
@@ -42,3 +44,7 @@ jobs:
         docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
         docker tag $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG $ECR_REGISTRY/$ECR_REPOSITORY:latest
         docker push $ECR_REGISTRY/$ECR_REPOSITORY:latest
+
+    - name: Deploy to Amazon ECS
+      run: |
+        aws ecs update-service --cluster $ECS_CLUSTER --service $ECS_SERVICE --region $AWS_REGION --force-new-deployment
