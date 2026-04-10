@@ -76,7 +76,7 @@ transform = transforms.Compose([
 ])
 
 # --- 4. Define the API Endpoint ---
-@app.post("/api/classify")
+@app.post("/api/cv/classify")
 async def classify_image(file: UploadFile = File(...)):
     if not file.content_type.startswith("image/"):
         raise HTTPException(status_code=400, detail="The uploaded file must be an image.")
