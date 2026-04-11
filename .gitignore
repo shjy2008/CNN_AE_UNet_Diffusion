@@ -13,3 +13,11 @@ report/train_*
 # Python
 __pycache__/
 *.py[cod]
+
+peyton/
+
+Marks*.png
+
+*.docx
+
+assig1.pdf

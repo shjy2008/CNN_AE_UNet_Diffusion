@@ -14,14 +14,14 @@
 # #SBATCH --cpus-per-task=20
 # #SBATCH --time=00:00:30
 
-#SBATCH --out=log.txt
+# #SBATCH --out=log.txt
 
-# #SBATCH --partition=aoraki_gpu
-#SBATCH --partition=aoraki_gpu_H100
-# #SBATCH --partition=aoraki_gpu_A100
+#SBATCH --partition=aoraki_gpu
+# #SBATCH --partition=aoraki_gpu_H100
+# #SBATCH --partition=aoraki_gpu_A100_40GB
 #SBATCH --gpus-per-node=1
 #SBATCH --mem=32GB
-#SBATCH --time=1:00:00
+#SBATCH --time=0:30:00
 
 # echo "hello world"
 
