@@ -6,6 +6,8 @@ oxford_flowers102_train/
 # Common generated output directories (mostly images/checkpoints)
 saved/
 report/train_*
+report/task2b.txt
+report/Report_draft.docx
 
 # macOS
 .DS_Store
@@ -16,8 +18,7 @@ __pycache__/
 
 peyton/
 
-Marks*.png
-
-*.docx
-
-assig1.pdf
+Submission/*
+test_code/*
+Assignment/*
+Marks/*
