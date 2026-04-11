@@ -155,13 +155,13 @@ async def classify_image(file: UploadFile = File(...)):
         raise HTTPException(status_code=500, detail=f"Image processing failed: {str(e)}")
 
 @app.get("/api/cv/generate")
-async def generate_image(format: str = "gif"):
+async def generate_image(format: str = "gif", batch_size: int = 1):
     try:
         denoise_steps = 10
         imsize = 96
         
-        # Generate random noise
-        base_image = torch.ones(3, imsize, imsize, device=device) * 0.5
+        # 1. Update random noise to support batch dimension
+        base_image = torch.ones(batch_size, 3, imsize, imsize, device=device) * 0.5
         noisy_image = base_image
         for i in range(denoise_steps):
             std = 0.05 * (i + 1)
@@ -173,19 +173,23 @@ async def generate_image(format: str = "gif"):
         
         with torch.no_grad():
             current_latent = ae_encoder(random_noise)
-            denoised_images = [random_noise]
+            denoised_images = [random_noise] # List of tensors of shape (B, 3, H, W)
             
-            # Denoise in the latent space at each step and decode
             for _ in range(denoise_steps):
                 current_latent = denoiser_model(current_latent)
                 decoded_image = ae_decoder(current_latent)
                 denoised_images.append(torch.clamp(decoded_image, 0, 1))
         
         if format == "gif":
-            pil_images = [transforms.ToPILImage()(img.cpu()) for img in denoised_images]
+            import torchvision
+            pil_images = []
+            # Make a grid for each step's batch
+            nrow = int(batch_size ** 0.5) if batch_size > 1 else 1
+            for step_batch in denoised_images:
+                grid = torchvision.utils.make_grid(step_batch, nrow=nrow, padding=2)
+                pil_images.append(transforms.ToPILImage()(grid.cpu()))
+                
             buf = io.BytesIO()
-            
-            # Add a longer delay for the final image so users can see the result
             durations = [200] * len(pil_images)
             durations[-1] = 2000 # Linger on final frame for 2s
             
@@ -196,10 +200,17 @@ async def generate_image(format: str = "gif"):
             media_type = "image/gif"
         else:
             import torchvision
-            all_images_tensor = torch.stack(denoised_images)
-            grid = torchvision.utils.make_grid(all_images_tensor, nrow=denoise_steps + 1, padding=2)
+            if batch_size == 1:
+                # Show process of 1 image
+                all_images_tensor = torch.stack(denoised_images)
+                grid = torchvision.utils.make_grid(all_images_tensor, nrow=denoise_steps + 1, padding=2)
+            else:
+                # Show only the final step for all generated images in grid format
+                final_batch = denoised_images[-1]
+                nrow = int(batch_size ** 0.5)
+                grid = torchvision.utils.make_grid(final_batch, nrow=nrow, padding=2)
+                
             grid_clamped = torch.clamp(grid, 0, 1)
-            
             pil_image = transforms.ToPILImage()(grid_clamped.cpu())
             buf = io.BytesIO()
             pil_image.save(buf, format="JPEG")
