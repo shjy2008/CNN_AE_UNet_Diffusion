@@ -50,7 +50,7 @@ jobs:
     # NEW STEP 1: Download the current task definition from AWS
     - name: Download task definition
       run: |
-        aws ecs describe-task-definition --task-definition ${{ env.ECS_SERVICE }} --query taskDefinition > task-definition.json
+        aws ecs describe-task-definition --task-definition ${{ env.ECS_SERVICE }} --query taskDefinition | jq 'del(.taskDefinitionArn, .revision, .status, .requiresAttributes, .compatibilities, .registeredAt, .registeredBy)' > task-definition.json
 
     # NEW STEP 2: Update the image URI in the task definition JSON
     - name: Fill in the new image ID in the Amazon ECS task definition
