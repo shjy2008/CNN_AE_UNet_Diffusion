@@ -2,12 +2,14 @@ import os
 import io
 import torch
 import torchvision.transforms as transforms
-from fastapi import FastAPI, UploadFile, File, HTTPException
+from fastapi import FastAPI, UploadFile, File, HTTPException, Response
 from fastapi.middleware.cors import CORSMiddleware
 from PIL import Image
 
 # Import model architecture and configurations from task1
 from task1 import CNN
+from task2a import AE_Encoder, AE_Decoder
+from task2b import UNetDenoiser
 
 # Import class mappings from the dataloader
 from load_oxford_flowers102 import flowers102_class_names, flowers102_group_names
@@ -80,6 +82,33 @@ else:
 # It is critical to set the model to evaluation mode for inference
 classifier_model.eval()
 
+# --- 2b. Initialize and Load the Generator Models ---
+ae_encoder = AE_Encoder(in_channels=3)
+ae_decoder = AE_Decoder(out_channels=3)
+denoiser_model = UNetDenoiser()
+
+ae_encoder.to(device)
+ae_decoder.to(device)
+denoiser_model.to(device)
+
+ae_encoder_weights = os.path.join("saved", "AE_encoder.weights.h5")
+ae_decoder_weights = os.path.join("saved", "AE_decoder.weights.h5")
+denoiser_weights = os.path.join("saved", "Denoiser.weights.h5")
+
+if os.path.isfile(ae_encoder_weights):
+    print(f"Loading weights from {ae_encoder_weights}")
+    ae_encoder.load_state_dict(torch.load(ae_encoder_weights, map_location=device, weights_only=True))
+if os.path.isfile(ae_decoder_weights):
+    print(f"Loading weights from {ae_decoder_weights}")
+    ae_decoder.load_state_dict(torch.load(ae_decoder_weights, map_location=device, weights_only=True))
+if os.path.isfile(denoiser_weights):
+    print(f"Loading weights from {denoiser_weights}")
+    denoiser_model.load_state_dict(torch.load(denoiser_weights, map_location=device, weights_only=True))
+
+ae_encoder.eval()
+ae_decoder.eval()
+denoiser_model.eval()
+
 # --- 3. Image Preprocessing ---
 # Based on the test transform used in load_oxford_flowers102.py
 imsize = 96
@@ -124,6 +153,65 @@ async def classify_image(file: UploadFile = File(...)):
         
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Image processing failed: {str(e)}")
+
+@app.get("/api/cv/generate")
+async def generate_image(format: str = "gif"):
+    try:
+        denoise_steps = 10
+        imsize = 96
+        
+        # Generate random noise
+        base_image = torch.ones(3, imsize, imsize, device=device) * 0.5
+        noisy_image = base_image
+        for i in range(denoise_steps):
+            std = 0.05 * (i + 1)
+            noise = torch.randn(noisy_image.size(), device=device) * std
+            noisy_image = noisy_image + noise
+            noisy_image = torch.clamp(noisy_image, 0, 1)
+            
+        random_noise = noisy_image
+        
+        with torch.no_grad():
+            current_latent = ae_encoder(random_noise)
+            denoised_images = [random_noise]
+            
+            # Denoise in the latent space at each step and decode
+            for _ in range(denoise_steps):
+                current_latent = denoiser_model(current_latent)
+                decoded_image = ae_decoder(current_latent)
+                denoised_images.append(torch.clamp(decoded_image, 0, 1))
+        
+        if format == "gif":
+            pil_images = [transforms.ToPILImage()(img.cpu()) for img in denoised_images]
+            buf = io.BytesIO()
+            
+            # Add a longer delay for the final image so users can see the result
+            durations = [200] * len(pil_images)
+            durations[-1] = 2000 # Linger on final frame for 2s
+            
+            pil_images[0].save(
+                buf, format="GIF", save_all=True, append_images=pil_images[1:], 
+                duration=durations, loop=0
+            )
+            media_type = "image/gif"
+        else:
+            import torchvision
+            all_images_tensor = torch.stack(denoised_images)
+            grid = torchvision.utils.make_grid(all_images_tensor, nrow=denoise_steps + 1, padding=2)
+            grid_clamped = torch.clamp(grid, 0, 1)
+            
+            pil_image = transforms.ToPILImage()(grid_clamped.cpu())
+            buf = io.BytesIO()
+            pil_image.save(buf, format="JPEG")
+            media_type = "image/jpeg"
+        
+        return Response(content=buf.getvalue(), media_type=media_type, headers={
+            "Cache-Control": "no-cache, no-store, must-revalidate",
+            "Pragma": "no-cache",
+            "Expires": "0"
+        })
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Image generation failed: {str(e)}")
 
 if __name__ == "__main__":
     import uvicorn
