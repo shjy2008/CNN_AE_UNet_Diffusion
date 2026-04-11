@@ -106,8 +106,11 @@ async def classify_image(file: UploadFile = File(...)):
         # Run inference
         with torch.no_grad():
             output = classifier_model(tensor)
-            # The model outputs raw logits, argmax gives the highest prob class ID
-            prediction_index = torch.argmax(output, dim=1).item()
+            # The model outputs raw logits, apply softmax to get probabilities
+            probabilities = torch.softmax(output, dim=1)
+            confidence, prediction_index_tensor = torch.max(probabilities, dim=1)
+            prediction_index = prediction_index_tensor.item()
+            confidence = confidence.item()
             
         predicted_class_name = class_names[prediction_index]
         
@@ -115,6 +118,7 @@ async def classify_image(file: UploadFile = File(...)):
             "filename": file.filename,
             "prediction_index": prediction_index,
             "prediction_class": predicted_class_name,
+            "confidence": confidence,
             "model_type": "fine-grained" if fine_grained else "coarse"
         }
         
