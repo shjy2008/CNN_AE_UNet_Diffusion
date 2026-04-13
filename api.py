@@ -36,6 +36,15 @@ app.add_middleware(
 def health_check():
     return {"status": "ok"}
 
+import time
+import logging
+
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
+# Track the total startup time
+start_time = time.time()
+
 # --- 1. Load the Model Configuration ---
 # Only use fine-grained, because every image has a fine-grained label, but not all images have coarse-grained labels
 fine_grained = True 
@@ -118,6 +127,9 @@ transform = transforms.Compose([
     transforms.ToTensor()
 ])
 
+end_time = time.time()
+logger.info(f"===== Cold Start: Model loading took {end_time - start_time:.2f} seconds =====")
+
 # --- 4. Define the API Endpoint ---
 @app.post("/api/cv/classify")
 async def classify_image(file: UploadFile = File(...)):
@@ -183,21 +195,30 @@ async def generate_image(format: str = "gif", batch_size: int = 1):
         if format == "gif":
             import torchvision
             pil_images = []
-            # Make a grid for each step's batch
+            
+            # Ensure we are going from Noise -> Clean
+            # If your loop already does this, you don't need the [::-1]
+            images_to_process = denoised_images 
+            # images_to_process = denoised_images[::-1] # Uncomment this if it still ends in noise
+            
             nrow = int(batch_size ** 0.5) if batch_size > 1 else 1
-            for step_batch in denoised_images:
-                grid = torchvision.utils.make_grid(step_batch, nrow=nrow, padding=2)
+            for step_batch in images_to_process:
+                # Normalize if necessary (ensure values are 0-1)
+                grid = torchvision.utils.make_grid(step_batch, nrow=nrow, padding=2, normalize=True)
                 pil_images.append(transforms.ToPILImage()(grid.cpu()))
                 
             buf = io.BytesIO()
-            durations = [200] * len(pil_images)
-            durations[-1] = 2000 # Linger on final frame for 2s
+            # 500ms per step, then linger on the final clean image
+            durations = [500] * (len(pil_images) - 1) + [65535] 
             
             pil_images[0].save(
                 buf, format="GIF", save_all=True, append_images=pil_images[1:], 
-                duration=durations, loop=0
+                duration=durations, 
+                loop=1  # Set to 1 to play once, though frontend will handle the 'freeze' too
             )
+            buf.seek(0)
             media_type = "image/gif"
+
         else:
             import torchvision
             if batch_size == 1:
