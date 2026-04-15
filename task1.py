@@ -1,13 +1,5 @@
-import torch.utils
-import torch.utils.data
-import torchvision
-from load_oxford_flowers102 import load_oxford_flowers102
 import torch
-import tqdm
 import os
-from sklearn.metrics import confusion_matrix
-import matplotlib.pyplot as plt
-import seaborn
 
 ############# Please change this ################
 LOAD_FROM_FILE = True
@@ -247,6 +239,9 @@ class ModelTrainer(object):
         print(f"device: {self.device}")
 
     def load_dataset(self, imsize = 96, batch_size = 16, data_augmentation = True):
+        from load_oxford_flowers102 import load_oxford_flowers102
+        # Lazy import heavy torchvision transforms only when preparing dataset
+        import torchvision
         self.training_set, self.validation_set, self.test_set, self.class_names = load_oxford_flowers102(imsize = imsize, fine = self.fine_grained)
 
         # Data augmentation
@@ -347,6 +342,9 @@ class ModelTrainer(object):
 
             best_validation_accuracy = 0.0
 
+            # Lazy import tqdm for progress bars inside training loop
+            import tqdm
+
             for epoch in range(1, epochs + 1):
                 # Switch to train mode, activate BatchNorm and Dropout
                 cnn.train()
@@ -426,6 +424,11 @@ class ModelTrainer(object):
         accuracy_test = 0
         all_preds = []
         all_labels = []
+        # Lazy import plotting and metrics only when running tests
+        from sklearn.metrics import confusion_matrix
+        import matplotlib.pyplot as plt
+        import seaborn
+
         with torch.no_grad(): # In evaluation mode, don't calculate gradient, save computational cost
             for x_batch, y_batch in self.test_data:
                 # Must move the data to the device, because the model is on the device

@@ -1,26 +1,149 @@
+import time 
+start_time = time.time()
+
 import os
 import io
+import logging
+import asyncio
+from contextlib import asynccontextmanager
+
 import torch
-import torchvision.transforms as transforms
 from fastapi import FastAPI, UploadFile, File, HTTPException, Response
 from fastapi.middleware.cors import CORSMiddleware
-from PIL import Image
 
-# Import model architecture and configurations from task1
-from task1 import CNN
-from task2a import AE_Encoder, AE_Decoder
-from task2b import UNetDenoiser
+load_time = time.time()
+print(f">>> Initial import lightweight part took {load_time - start_time:.3f}s")
 
-# Import class mappings from the dataloader
-from load_oxford_flowers102 import flowers102_class_names, flowers102_group_names
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
+# --- Global State ---
+classifier_model = None
+ae_encoder = None
+ae_decoder = None
+denoiser_model = None
+device = None
+class_names = None
+fine_grained = True
+transform = None
+
+
+def get_device():
+    if torch.cuda.is_available():
+        return torch.device("cuda")
+    elif torch.backends.mps.is_available():
+        return torch.device("mps")
+    else:
+        return torch.device("cpu")
+
+
+def load_classifier():
+    global classifier_model, class_names, fine_grained, device
+    fine_grained = True
+    # Lazy-import dataset mappings and model class to avoid heavy top-level imports
+    from load_oxford_flowers102 import flowers102_class_names, flowers102_group_names
+    from task1 import CNN
+
+    if fine_grained:
+        n_classes = len(flowers102_class_names)
+        class_names = flowers102_class_names
+        weights_path = os.path.join("saved", "CNN_fine.weights.h5")
+    else:
+        n_classes = len(flowers102_group_names)
+        class_names = list(flowers102_group_names.keys())
+        weights_path = os.path.join("saved", "CNN_coarse.weights.h5")
+
+    # Initialize the Model
+    classifier_model = CNN(
+        in_channels=3, 
+        n_classes=n_classes, 
+        reg_dropout_rate=0, 
+        reg_batch_norm=True
+    )
+    classifier_model.to(device)
+
+    # Load weights using memory mapping for significantly faster initialization
+    if os.path.isfile(weights_path):
+        print(f"Loading weights from {weights_path}")
+        classifier_model.load_state_dict(
+            torch.load(weights_path, map_location=device, weights_only=True, mmap=True)
+        )
+    else:
+        print(f"Warning: weights file not found at {weights_path}.")
+
+    classifier_model.eval()
+
+
+def load_generators():
+    global ae_encoder, ae_decoder, denoiser_model, device
+    # Lazy-import generator model classes
+    from task2a import AE_Encoder, AE_Decoder
+    from task2b import UNetDenoiser
+
+    ae_encoder = AE_Encoder(in_channels=3)
+    ae_decoder = AE_Decoder(out_channels=3)
+    denoiser_model = UNetDenoiser()
+
+    ae_encoder.to(device)
+    ae_decoder.to(device)
+    denoiser_model.to(device)
+
+    ae_encoder_weights = os.path.join("saved", "AE_encoder.weights.h5")
+    ae_decoder_weights = os.path.join("saved", "AE_decoder.weights.h5")
+    denoiser_weights = os.path.join("saved", "Denoiser.weights.h5")
+
+    # Load local generation weights using memory mapping
+    if os.path.isfile(ae_encoder_weights):
+        print(f"Loading weights from {ae_encoder_weights}")
+        ae_encoder.load_state_dict(torch.load(ae_encoder_weights, map_location=device, weights_only=True, mmap=True))
+    if os.path.isfile(ae_decoder_weights):
+        print(f"Loading weights from {ae_decoder_weights}")
+        ae_decoder.load_state_dict(torch.load(ae_decoder_weights, map_location=device, weights_only=True, mmap=True))
+    if os.path.isfile(denoiser_weights):
+        print(f"Loading weights from {denoiser_weights}")
+        denoiser_model.load_state_dict(torch.load(denoiser_weights, map_location=device, weights_only=True, mmap=True))
+
+    ae_encoder.eval()
+    ae_decoder.eval()
+    denoiser_model.eval()
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    global device, transform
+    lifespan_start = time.time()
+    
+    device = get_device()
+    
+    # Image Preprocessing
+    imsize = 96
+    # Lazy-import torchvision transforms to avoid import cost at module import
+    from torchvision import transforms
+    transform = transforms.Compose([
+        transforms.Resize(imsize),
+        transforms.CenterCrop(imsize),
+        transforms.ToTensor()
+    ])
+
+    # Run heavy PyTorch model initialization concurrently in separate threads
+    await asyncio.gather(
+        asyncio.to_thread(load_classifier),
+        asyncio.to_thread(load_generators)
+    )
+    
+    end_time = time.time()
+    logger.info(f"===== Lifespan (Concurrent Model Loading) took {end_time - lifespan_start:.2f} seconds =====")
+    logger.info(f"===== TOTAL Cold Start (from import to ready) took {end_time - start_time:.2f} seconds =====")
+    yield
+
 
 app = FastAPI(
     title="CNN Image Classifier API",
-    description="Exposes the task1.py CNN PyTorch model to classify flower images."
+    description="Exposes the task1.py CNN PyTorch model to classify flower images.",
+    lifespan=lifespan
 )
 
 # Add CORS Middleware to allow React app to talk to the API 
-# (don't need junyishen.com, because production React app in same domain/port, and use relative paths)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
@@ -36,99 +159,6 @@ app.add_middleware(
 def health_check():
     return {"status": "ok"}
 
-import time
-import logging
-
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger(__name__)
-
-# Track the total startup time
-start_time = time.time()
-
-# --- 1. Load the Model Configuration ---
-# Only use fine-grained, because every image has a fine-grained label, but not all images have coarse-grained labels
-fine_grained = True 
-
-if fine_grained:
-    n_classes = len(flowers102_class_names)
-    class_names = flowers102_class_names
-    weights_path = os.path.join("saved", "CNN_fine.weights.h5")
-else:
-    n_classes = len(flowers102_group_names)
-    class_names = list(flowers102_group_names.keys())
-    weights_path = os.path.join("saved", "CNN_coarse.weights.h5")
-
-# print ("class_names: ", class_names)
-
-# Hardcoded for the model trained in task1.py
-reg_dropout_rate = 0 
-reg_batch_norm = True 
-
-# Use GPU/MPS if available
-if torch.cuda.is_available():
-    device = torch.device("cuda")
-elif torch.backends.mps.is_available():
-    device = torch.device("mps")
-else:
-    device = torch.device("cpu")
-
-# --- 2. Initialize and Load the Model ---
-classifier_model = CNN(
-    in_channels=3, 
-    n_classes=n_classes, 
-    reg_dropout_rate=reg_dropout_rate, 
-    reg_batch_norm=reg_batch_norm
-)
-classifier_model.to(device)
-
-# Load weights if the file exists
-if os.path.isfile(weights_path):
-    print(f"Loading weights from {weights_path}")
-    classifier_model.load_state_dict(torch.load(weights_path, map_location=device, weights_only=True))
-else:
-    print(f"Warning: weights file not found at {weights_path}.")
-
-# It is critical to set the model to evaluation mode for inference
-classifier_model.eval()
-
-# --- 2b. Initialize and Load the Generator Models ---
-ae_encoder = AE_Encoder(in_channels=3)
-ae_decoder = AE_Decoder(out_channels=3)
-denoiser_model = UNetDenoiser()
-
-ae_encoder.to(device)
-ae_decoder.to(device)
-denoiser_model.to(device)
-
-ae_encoder_weights = os.path.join("saved", "AE_encoder.weights.h5")
-ae_decoder_weights = os.path.join("saved", "AE_decoder.weights.h5")
-denoiser_weights = os.path.join("saved", "Denoiser.weights.h5")
-
-if os.path.isfile(ae_encoder_weights):
-    print(f"Loading weights from {ae_encoder_weights}")
-    ae_encoder.load_state_dict(torch.load(ae_encoder_weights, map_location=device, weights_only=True))
-if os.path.isfile(ae_decoder_weights):
-    print(f"Loading weights from {ae_decoder_weights}")
-    ae_decoder.load_state_dict(torch.load(ae_decoder_weights, map_location=device, weights_only=True))
-if os.path.isfile(denoiser_weights):
-    print(f"Loading weights from {denoiser_weights}")
-    denoiser_model.load_state_dict(torch.load(denoiser_weights, map_location=device, weights_only=True))
-
-ae_encoder.eval()
-ae_decoder.eval()
-denoiser_model.eval()
-
-# --- 3. Image Preprocessing ---
-# Based on the test transform used in load_oxford_flowers102.py
-imsize = 96
-transform = transforms.Compose([
-    transforms.Resize(imsize),
-    transforms.CenterCrop(imsize),
-    transforms.ToTensor()
-])
-
-end_time = time.time()
-logger.info(f"===== Cold Start: Model loading took {end_time - start_time:.2f} seconds =====")
 
 # --- 4. Define the API Endpoint ---
 @app.post("/api/cv/classify")
@@ -139,6 +169,7 @@ async def classify_image(file: UploadFile = File(...)):
     try:
         # Read image to memory
         contents = await file.read()
+        from PIL import Image
         image = Image.open(io.BytesIO(contents)).convert("RGB")
         
         # Preprocess the image and add batch dimension (B, C, H, W)
