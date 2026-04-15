@@ -224,6 +224,7 @@ async def generate_image(format: str = "gif", batch_size: int = 1):
                 decoded_image = ae_decoder(current_latent)
                 denoised_images.append(torch.clamp(decoded_image, 0, 1))
         
+        from torchvision import transforms
         if format == "gif":
             import torchvision
             pil_images = []
