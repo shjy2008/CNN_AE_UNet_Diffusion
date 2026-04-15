@@ -147,8 +147,9 @@ app = FastAPI(
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
-        "http://localhost:4173", # For npm run preview
-        "http://localhost:5173", # For npm run dev
+        "http://localhost:4173", # For npm run preview (vite)
+        "http://localhost:5173", # For npm run dev (vite)
+        "http://localhost:3000", # For npm run dev/start (Next.js)
     ],
     allow_credentials=True,
     allow_methods=["*"],
