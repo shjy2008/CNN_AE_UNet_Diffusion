@@ -51,7 +51,7 @@ app = modal.App("flower-vision-api")
     # gpu="any", # You can specify "T4", "A10G", etc. if you want to use GPU for inference
     scaledown_window=300, # Keeps the container warm for 5 minutes after a request
 )
-@modal.asgi_app()
+@modal.asgi_app(requires_proxy_auth=True)
 def web_app():
     """
     This function wraps your existing FastAPI 'app' from api.py and exposes it as a Modal web endpoint.
